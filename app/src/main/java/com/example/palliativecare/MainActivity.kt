@@ -14,6 +14,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.palliativecare.controller.auth.AuthController
+import com.example.palliativecare.model.Screen
 import com.example.palliativecare.ui.screen.AddArticleScreen
 import com.example.palliativecare.ui.screen.ArticleDetailsScreen
 import com.example.palliativecare.ui.screen.ChatDetailsScreen
@@ -29,10 +31,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PalliativeCareTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl ) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val navController = rememberNavController()
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        MyNavHost(navHostController = navController)
+                        MyNavHost(navHostController = navController, isLoggedIn = true)
                     }
                 }
             }
@@ -41,16 +43,16 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MyNavHost(navHostController: NavHostController) {
+fun MyNavHost(navHostController: NavHostController, isLoggedIn: Boolean) {
     NavHost(
         navController = navHostController,
-        startDestination = "chat_details_screen"
+        startDestination = if (isLoggedIn) "main_screen" else "login_screen"
     ) {
         composable(route = "login_screen") {
-            LoginScreen(navHostController)
+            LoginScreen(navHostController, loginController = AuthController())
         }
         composable(route = "register_screen") {
-            RegisterScreen(navHostController)
+            RegisterScreen(navHostController, registerController = AuthController())
         }
         composable(route = "main_screen") {
             MainScreen()

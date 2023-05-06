@@ -21,27 +21,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
-import com.example.palliativecare.model.User
+import com.example.palliativecare.model.ChatUser
 
 @Composable
 fun ChatScreen() {
     val userList = listOf(
-        User(
+        ChatUser(
             name = "سامر مشتهى",
             phone = "0592121665",
             image = "https://randomuser.me/api/portraits/men/1.jpg"
         ),
-        User(
+        ChatUser(
             name = "محمود حبيب",
             phone = "0592121665",
             image = "https://randomuser.me/api/portraits/women/2.jpg"
         ),
-        User(
+        ChatUser(
             name = "بهاء الرملاوي",
             phone = "0592121665",
             image = "https://randomuser.me/api/portraits/men/3.jpg"
         ),
-        User(
+        ChatUser(
             name = "حسام شعبان",
             phone = "0592121665",
             image = "https://randomuser.me/api/portraits/women/4.jpg"
@@ -59,7 +59,7 @@ fun ChatScreen() {
 }
 
 @Composable
-fun UserListItem(user: User) {
+fun UserListItem(user: ChatUser) {
     Row(
         modifier = Modifier.clickable {  },
         verticalAlignment = Alignment.CenterVertically

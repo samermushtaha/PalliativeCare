@@ -1,8 +1,18 @@
 package com.example.palliativecare.model
 
+import android.net.Uri
+
 data class User(
-    val image: String,
     val name: String,
-    val phone: String,
-    val lastMessageDate: String = "12:00"
+    val email: String,
+    val password: String,
+    val phoneNumber: String,
+    val address: String,
+    val birthdate: String,
+    val image: Uri?,
+    val userType: String
+)
+data class LoginUser(
+    val email: String,
+    val password: String
 )

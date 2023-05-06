@@ -1,7 +1,6 @@
 package com.example.palliativecare.ui.screen
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,7 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
-import com.example.palliativecare.model.User
+import com.example.palliativecare.model.ChatUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +43,7 @@ fun ChatDetailsScreen() {
         TopAppBar(
             title = {
                 UserItem(
-                    User(
+                    ChatUser(
                         name = "سامر مشتهى",
                         phone = "0592121665",
                         image = "https://randomuser.me/api/portraits/men/1.jpg"
@@ -138,7 +136,7 @@ fun NewMessageInput() {
 }
 
 @Composable
-fun UserItem(user: User) {
+fun UserItem(user: ChatUser) {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {

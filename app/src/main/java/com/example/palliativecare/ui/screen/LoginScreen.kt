@@ -1,5 +1,6 @@
 package com.example.palliativecare.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,20 +27,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.palliativecare.R
+import com.example.palliativecare.controller.auth.AuthController
+import com.example.palliativecare.model.LoginUser
+import com.example.palliativecare.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    navController: NavController
+    navController: NavController,
+    loginController: AuthController
 ) {
-    var username by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // Define a state variable to track whether the login was successful
+    var isLoggedIn by remember { mutableStateOf(false) }
+
+    // Define a function to handle the login button click
+    fun handleLoginButtonClick() {
+        // Create a LoginUser object with the email and password
+        val loginUser = LoginUser(email = email, password = password)
+
+        // Call the login method on the loginController
+        loginController.loginUser(loginUser) { success, errorMessage ->
+            if (success) {
+                isLoggedIn = true
+                navController.navigate("main_screen")
+                navController.navigate("main_screen")
+            } else {
+                Toast.makeText(context, "Login failed $errorMessage", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -55,8 +82,8 @@ fun LoginScreen(
                 .padding(16.dp)
         )
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
+            value = email,
+            onValueChange = { email = it },
             label = { Text("البريد الالكتروني") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,14 +109,18 @@ fun LoginScreen(
             visualTransformation = PasswordVisualTransformation(),
         )
         Spacer(modifier = Modifier.height(20.dp))
+
         Button(
-            onClick = { navController.navigate("main_screen") },
+            onClick = {
+                handleLoginButtonClick()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
             Text("تسجيل دخول")
         }
+
 
         Spacer(Modifier.weight(1f))
 

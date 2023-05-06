@@ -1,8 +1,7 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,15 +25,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.R
+import com.example.palliativecare.controller.profile.ProfileController
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    navController: NavController,
+    profileController: ProfileController,
+) {
+    val context = LocalContext.current
     val image = remember { mutableStateOf<Uri?>(null) }
     Column(
         modifier = Modifier
@@ -62,7 +67,9 @@ fun ProfileScreen() {
         )
         Spacer(modifier = Modifier.height(30.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().clickable { },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -84,7 +91,9 @@ fun ProfileScreen() {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().clickable {  },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -106,7 +115,15 @@ fun ProfileScreen() {
         }
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = {},
+            onClick = {
+                profileController.logout { success ->
+                    if (success) {
+                        navController.navigate("login_screen") // navigate to login screen after logout
+                    } else {
+                        Toast.makeText(context, "Logout failed", Toast.LENGTH_LONG).show()
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
         ) {

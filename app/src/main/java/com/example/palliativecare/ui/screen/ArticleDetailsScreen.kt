@@ -1,10 +1,7 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,17 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,10 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.R
-import com.example.palliativecare.model.User
+import com.example.palliativecare.model.ChatUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +82,7 @@ fun ArticleDetailsScreen() {
                     contentScale = ContentScale.Crop
                 )
                 DoctorInfo(
-                    User(
+                    ChatUser(
                         "https://randomuser.me/api/portraits/men/1.jpg",
                         "د. سامر مشتهى",
                         "059212665",
@@ -113,7 +100,7 @@ fun ArticleDetailsScreen() {
 }
 
 @Composable
-fun DoctorInfo(user: User) {
+fun DoctorInfo(user: ChatUser) {
     Row(
         modifier = Modifier
             .padding(16.dp),

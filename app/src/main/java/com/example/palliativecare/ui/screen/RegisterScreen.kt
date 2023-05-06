@@ -1,10 +1,10 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,26 +29,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import com.example.palliativecare.R
+import com.example.palliativecare.controller.auth.AuthController
+import com.example.palliativecare.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    navController: NavController
+    navController: NavController,
+    registerController: AuthController
 ) {
+    val context = LocalContext.current
     val name = remember { mutableStateOf("") }
     val phoneNumber = remember { mutableStateOf("") }
     val address = remember { mutableStateOf("") }
     val confirmPassword = remember { mutableStateOf("") }
     val birthdate = remember { mutableStateOf("") }
     val email = remember { mutableStateOf("") }
+    val userType = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val image = remember { mutableStateOf<Uri?>(null) }
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
@@ -148,14 +152,85 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        OutlinedTextField(
+            value = userType.value,
+            onValueChange = { userType.value = it },
+            label = { Text("نوع المستخدم (مريض / طبيب)") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Button(
-            onClick = { /* Handle the registration button click */ },
+            onClick = {
+                if (userType.value == "مريض") {
+
+                    image.value?.let { imageUri ->
+                        registerController.uploadImage(
+                            imageUri = imageUri,
+                            onSuccess = { downloadUrl ->
+                                Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
+                                    .show()
+                            },
+                            onFailure = { exception ->
+                                Toast.makeText(
+                                    context,
+                                    "Upload failed ${exception.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
+                    }
+                    val user = User(
+                        email = email.value,
+                        name = name.value,
+                        password = password.value,
+                        phoneNumber = phoneNumber.value,
+                        address = address.value,
+                        birthdate = birthdate.value,
+                        image = image.value!!,
+                        userType = userType.value
+                    )
+                    registerController.registerUser(user, context)
+                } else if (userType.value == "طبيب") {
+                    image.value?.let { imageUri ->
+                        registerController.uploadImage(
+                            imageUri = imageUri,
+                            onSuccess = { downloadUrl ->
+                                Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
+                                    .show()
+                            },
+                            onFailure = { exception ->
+                                Toast.makeText(
+                                    context,
+                                    "Upload failed ${exception.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
+                    }
+
+
+                    val user = User(
+                        email = email.value,
+                        name = name.value,
+                        password = password.value,
+                        phoneNumber = phoneNumber.value,
+                        address = address.value,
+                        birthdate = birthdate.value,
+                        image = Uri.parse(image.value.toString()),
+                        userType = userType.value
+                    )
+                    registerController.registerUser(user, context)
+                } else {
+                    // Show an error message for invalid user type
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
         ) {
             Text("تسجيل")
         }
+
 
         Spacer(Modifier.weight(1f))
 
@@ -167,3 +242,4 @@ fun RegisterScreen(
         }
     }
 }
+

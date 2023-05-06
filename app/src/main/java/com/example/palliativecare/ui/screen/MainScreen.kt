@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.*
 import androidx.compose.ui.unit.*
 import androidx.navigation.*
 import androidx.navigation.compose.*
+import com.example.palliativecare.controller.profile.ProfileController
 import com.example.palliativecare.model.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +41,7 @@ fun MainScreen() {
             )
         },
         floatingActionButton = {
-            if(navItems[current.value].title == "Home"){
+            if (navItems[current.value].title == "Home") {
                 FloatingActionButton(onClick = { /*TODO*/ }) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -56,7 +57,12 @@ fun MainScreen() {
 
                 navItems.forEachIndexed { index, screen ->
                     NavigationBarItem(
-                        icon = { Icon(painter = painterResource(id = screen.icon), contentDescription = "") },
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = screen.icon),
+                                contentDescription = ""
+                            )
+                        },
                         label = { Text(text = screen.title) },
                         selected = currentRoute == screen.route,
                         onClick = {
@@ -70,7 +76,7 @@ fun MainScreen() {
                 }
             }
         }
-    ) {paddingValues ->
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValues)
@@ -82,7 +88,11 @@ fun MainScreen() {
             ) {
                 composable(Screen.Home.route) { HomeScreen() }
                 composable(Screen.Chat.route) { ChatScreen() }
-                composable(Screen.Profile.route) { ProfileScreen() }
+                composable(Screen.Profile.route) {
+                    ProfileScreen(
+                        navController,
+                    )
+                }
             }
         }
     }
