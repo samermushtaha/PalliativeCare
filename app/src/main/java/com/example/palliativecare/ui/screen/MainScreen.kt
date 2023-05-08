@@ -25,8 +25,9 @@ import com.example.palliativecare.model.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(navHostController: NavController) {
     val navController = rememberNavController()
+    val selectedItem = remember { mutableStateOf(Screen.Home.route) }
     val current = remember { mutableStateOf(0) }
     val navItems = listOf(
         Screen.Home,
@@ -41,8 +42,8 @@ fun MainScreen() {
             )
         },
         floatingActionButton = {
-            if (navItems[current.value].title == "Home") {
-                FloatingActionButton(onClick = { /*TODO*/ }) {
+            if (selectedItem.value == Screen.Home.route) {
+                FloatingActionButton(onClick = { navHostController.navigate("add_article_screen") }) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "",
@@ -71,6 +72,7 @@ fun MainScreen() {
                                 launchSingleTop = true
                             }
                             current.value = index
+                            selectedItem.value = screen.route
                         }
                     )
                 }
@@ -82,18 +84,26 @@ fun MainScreen() {
                 .padding(paddingValues)
                 .imePadding()
         ) {
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Home.route,
-            ) {
-                composable(Screen.Home.route) { HomeScreen() }
-                composable(Screen.Chat.route) { ChatScreen() }
-                composable(Screen.Profile.route) {
-                    ProfileScreen(
-                        navController,
-                    )
-                }
-            }
+            HomeNavHost(navHostController = navController)
+            navController.popBackStack()
+            navController.navigate(route = selectedItem.value)
+        }
+    }
+}
+
+@Composable
+fun HomeNavHost(navHostController: NavHostController){
+    NavHost(
+        navController = navHostController,
+        startDestination = Screen.Home.route,
+    ) {
+        composable(Screen.Home.route) { HomeScreen() }
+        composable(Screen.Chat.route) { ChatScreen() }
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                navHostController,
+                ProfileController()
+            )
         }
     }
 }

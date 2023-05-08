@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.palliativecare.controller.article.ArticleController
 import com.example.palliativecare.controller.auth.AuthController
 import com.example.palliativecare.model.Screen
 import com.example.palliativecare.ui.screen.AddArticleScreen
@@ -55,7 +56,7 @@ fun MyNavHost(navHostController: NavHostController, isLoggedIn: Boolean) {
             RegisterScreen(navHostController, registerController = AuthController())
         }
         composable(route = "main_screen") {
-            MainScreen()
+            MainScreen(navHostController)
         }
         composable(route = "chat_details_screen") {
             ChatDetailsScreen()
@@ -70,7 +71,7 @@ fun MyNavHost(navHostController: NavHostController, isLoggedIn: Boolean) {
             HistoryScreen()
         }
         composable(route = "add_article_screen") {
-            AddArticleScreen()
+            AddArticleScreen(articleController = ArticleController(), navController = navHostController)
         }
     }
 }
