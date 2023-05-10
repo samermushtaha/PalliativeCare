@@ -1,5 +1,6 @@
 package com.example.palliativecare.ui.screen
 
+import android.content.SharedPreferences
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -25,7 +26,7 @@ import com.example.palliativecare.model.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navHostController: NavController) {
+fun MainScreen(navHostController: NavController, preferences: SharedPreferences) {
     val navController = rememberNavController()
     val selectedItem = remember { mutableStateOf(Screen.Home.route) }
     val current = remember { mutableStateOf(0) }
@@ -84,7 +85,11 @@ fun MainScreen(navHostController: NavController) {
                 .padding(paddingValues)
                 .imePadding()
         ) {
-            HomeNavHost(navHostController = navController, mainNavHostController = navHostController)
+            HomeNavHost(
+                navHostController = navController,
+                mainNavHostController = navHostController,
+                preferences
+            )
             navController.popBackStack()
             navController.navigate(route = selectedItem.value)
         }
@@ -92,7 +97,11 @@ fun MainScreen(navHostController: NavController) {
 }
 
 @Composable
-fun HomeNavHost(navHostController: NavHostController, mainNavHostController: NavController){
+fun HomeNavHost(
+    navHostController: NavHostController,
+    mainNavHostController: NavController,
+    preferences: SharedPreferences
+) {
     NavHost(
         navController = navHostController,
         startDestination = Screen.Home.route,
@@ -102,7 +111,8 @@ fun HomeNavHost(navHostController: NavHostController, mainNavHostController: Nav
         composable(Screen.Profile.route) {
             ProfileScreen(
                 mainNavHostController,
-                ProfileController()
+                ProfileController(),
+                preferences
             )
         }
     }

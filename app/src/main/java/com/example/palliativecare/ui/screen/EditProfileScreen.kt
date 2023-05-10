@@ -1,6 +1,7 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -8,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,8 +22,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,17 +38,24 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.R
-import com.example.palliativecare.controller.auth.AuthController
+import com.example.palliativecare.controller.profile.ProfileController
 import com.example.palliativecare.model.User
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(
+fun EditProfileScreen(
     navController: NavController,
-    registerController: AuthController
+    profileController: ProfileController,
 ) {
+
     val context = LocalContext.current
-    val registrationInProgress = remember { mutableStateOf(false) }
+    val currentUser = remember { mutableStateOf<User?>(null) }
+    val editProfileProgress = remember { mutableStateOf(false) }
     val name = remember { mutableStateOf("") }
     val phoneNumber = remember { mutableStateOf("") }
     val address = remember { mutableStateOf("") }
@@ -66,6 +73,27 @@ fun RegisterScreen(
             }
         }
     )
+    val firestore = Firebase.firestore
+    val auth = Firebase.auth
+
+    // Load user data from Firestore and update the `currentUser` state
+    LaunchedEffect(Unit) {
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            val userRef = firestore.collection("users").document(uid)
+            userRef.get().addOnSuccessListener { document ->
+                val user = document.toObject(User::class.java)
+                currentUser.value = user
+                name.value = user?.name ?: ""
+                phoneNumber.value = user?.phoneNumber ?: ""
+                address.value = user?.address ?: ""
+                birthdate.value = user?.birthdate ?: ""
+                email.value = user?.email ?: ""
+                userType.value = user?.userType ?: ""
+                password.value = user?.password ?: ""
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -76,7 +104,8 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         AsyncImage(
-            model = image.value ?: R.drawable.ic_profile_placeholder,
+            model = if (image.value != null) image.value!! else currentUser.value?.image
+                ?: R.drawable.ic_profile_placeholder,
             contentDescription = "Profile picture",
             modifier = Modifier
                 .size(150.dp)
@@ -91,7 +120,10 @@ fun RegisterScreen(
 
         OutlinedTextField(
             value = name.value,
-            onValueChange = { name.value = it },
+            onValueChange = {
+                name.value = it
+                currentUser.value?.name = it
+            },
             label = { Text("الاسم كامل") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -164,92 +196,59 @@ fun RegisterScreen(
 
         Button(
             onClick = {
-                if (userType.value == "مريض") {
-                    image.value?.let { imageUri ->
-                        registrationInProgress.value = true
-                        registerController.uploadImage(
-                            imageUri = imageUri,
-                            onSuccess = { downloadUrl ->
-                                Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
-                                    .show()
-                                val user = User(
-                                    email = email.value,
-                                    name = name.value,
-                                    password = password.value,
-                                    phoneNumber = phoneNumber.value,
-                                    address = address.value,
-                                    birthdate = birthdate.value,
-                                    image = downloadUrl,
-                                    userType = userType.value
-                                )
-                                registerController.registerUser(user, context)
-                                registrationInProgress.value = false
-                            },
-                            onFailure = { exception ->
-                                Toast.makeText(
-                                    context,
-                                    "Upload failed $exception",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                registrationInProgress.value = false
+                image.value?.let { imageUri ->
+                    editProfileProgress.value = true
+                    profileController.uploadImage(
+                        imageUri = imageUri,
+                        onSuccess = { downloadUrl ->
+                            Log.e("image", downloadUrl)
+                            Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
+                                .show()
+                            currentUser.value?.let { user ->
+                                user.name = name.value
+                                user.email = email.value
+                                user.phoneNumber = phoneNumber.value
+                                user.address = address.value
+                                user.birthdate = birthdate.value
+                                user.image = downloadUrl
+                                user.userType = userType.value
+                                editProfileProgress.value = true
+                                profileController.updateProfileInFirestore(user) { success ->
+                                    editProfileProgress.value = false
+                                    if (success) {
+                                        Log.d("DEBUG", "Profile update successful")
+                                    } else {
+                                        Log.d("DEBUG", "Profile update failed")
+                                    }
+                                    // Enable the button after the profile update is complete
+                                    editProfileProgress.value = false
+                                }
                             }
-                        )
-                    }
-                } else if (userType.value == "طبيب") {
-                    image.value?.let { imageUri ->
-                        registrationInProgress.value = true
-                        registerController.uploadImage(
-                            imageUri = imageUri,
-                            onSuccess = { downloadUrl ->
-                                Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
-                                    .show()
-                                val user = User(
-                                    email = email.value,
-                                    name = name.value,
-                                    password = password.value,
-                                    phoneNumber = phoneNumber.value,
-                                    address = address.value,
-                                    birthdate = birthdate.value,
-                                    image = downloadUrl,
-                                    userType = userType.value
-                                )
-                                registerController.registerUser(user, context)
-                                registrationInProgress.value = false
-                            },
-                            onFailure = { exception ->
-                                Toast.makeText(
-                                    context,
-                                    "Upload failed $exception",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                registrationInProgress.value = false
-                            }
-                        )
-                    }
+
+                        },
+                        onFailure = { exception ->
+                            Toast.makeText(
+                                context,
+                                "Upload failed $exception",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            editProfileProgress.value = false
+                        }
+                    )
                 }
+
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !editProfileProgress.value
         ) {
-            if (registrationInProgress.value) {
+            if (editProfileProgress.value) {
                 CircularProgressIndicator(
                     color = Color.Red
                 )
             } else {
-                Text("تسجيل")
+                Text("حفظ التعديلات")
             }
         }
 
-
-        Spacer(Modifier.weight(1f))
-
-        TextButton(
-            onClick = { navController.navigate("login_screen") },
-            modifier = Modifier.padding(bottom = 16.dp)
-        ) {
-            Text("لدي حساب بلفعل؟ تسجيل دخول")
-        }
     }
 }
-

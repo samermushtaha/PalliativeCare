@@ -37,7 +37,6 @@ class AuthController {
             }
     }
 
-
     fun loginUser(user: LoginUser, onComplete: (Boolean, String?) -> Unit) {
         val email = user.email
         val password = user.password
@@ -88,7 +87,5 @@ class AuthController {
                 onFailure(exception)
             }
     }
-
-
 }
 

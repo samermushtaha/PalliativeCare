@@ -54,15 +54,17 @@ fun ChatScreen(navController: NavController) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(userList) { user ->
-            UserListItem(user = user)
+            UserListItem(user = user,navController)
         }
     }
 }
 
 @Composable
-fun UserListItem(user: ChatUser) {
+fun UserListItem(user: ChatUser,navController: NavController) {
     Row(
-        modifier = Modifier.clickable {  },
+        modifier = Modifier.clickable {
+            navController.navigate("chat_details_screen")
+        },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
