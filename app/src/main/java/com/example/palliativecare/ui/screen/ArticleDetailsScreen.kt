@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.R
@@ -43,7 +44,7 @@ import com.example.palliativecare.model.ChatUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArticleDetailsScreen() {
+fun ArticleDetailsScreen(navController: NavController) {
     val image = remember { mutableStateOf<Uri?>(null) }
 
     Scaffold(

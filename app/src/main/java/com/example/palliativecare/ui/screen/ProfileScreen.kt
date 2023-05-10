@@ -116,13 +116,14 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.weight(1f))
         Button(
             onClick = {
-                profileController.logout { success ->
-                    if (success) {
-                        navController.navigate("login_screen") // navigate to login screen after logout
-                    } else {
-                        Toast.makeText(context, "Logout failed", Toast.LENGTH_LONG).show()
-                    }
-                }
+//                profileController.logout { success ->
+//                    if (success) {
+//                        navController.navigate("login_screen") // navigate to login screen after logout
+//                    } else {
+//                        Toast.makeText(context, "Logout failed", Toast.LENGTH_LONG).show()
+//                    }
+//                }
+                navController.navigate("login_screen")
             },
             modifier = Modifier
                 .fillMaxWidth()

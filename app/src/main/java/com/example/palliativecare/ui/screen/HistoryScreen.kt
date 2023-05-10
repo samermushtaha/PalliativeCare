@@ -19,10 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.palliativecare.model.HistoricalEvent
 
 @Composable
-fun HistoryScreen() {
+fun HistoryScreen(navController: NavController) {
     val historicalEvents = listOf(
         HistoricalEvent("January 1, 2000", "Event 1", "Description of Event 1"),
         HistoricalEvent("February 2, 2001", "Event 2", "Description of Event 2"),

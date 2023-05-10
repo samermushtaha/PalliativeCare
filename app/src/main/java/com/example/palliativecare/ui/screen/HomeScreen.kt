@@ -53,11 +53,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.R
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
     val image = remember { mutableStateOf<Uri?>(null) }
     val selectedTopic = remember { mutableStateOf("") }
     val topics = remember { mutableStateListOf("الكل", "مرض السكري", "فقر الدم", "مرض السرطان", "امراض القلب") }

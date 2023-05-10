@@ -42,7 +42,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddArticleScreen(
@@ -69,6 +68,29 @@ fun AddArticleScreen(
         }
     )
 
+    fun onClick(){
+        isLoading.value = true
+        articleController.addArticle(
+            Article(
+                image = image.value,
+                title = title.value,
+                description = description.value,
+                categoryId = categoryId.value,
+                createdAt = createdAt,
+                doctorId = "1"
+            ),
+            onSuccess = {
+                isLoading.value = false
+                navController.popBackStack()
+            },
+            onFailure = {
+                isLoading.value = false
+                isFailure.value = true
+                Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
     Column {
         TopAppBar(
             title = { Text(text = "اضافة مقالة") },
@@ -79,26 +101,7 @@ fun AddArticleScreen(
             },
             actions = {
                 Button(onClick = {
-                    isLoading.value = true
-                    articleController.addArticle(
-                        Article(
-                            image = image.value,
-                            title = title.value,
-                            description = description.value,
-                            categoryId = categoryId.value,
-                            createdAt = createdAt,
-                            doctorId = "1"
-                        ),
-                        onSuccess = {
-                            isLoading.value = false
-                            navController.popBackStack()
-                        },
-                        onFailure = {
-                            isLoading.value = false
-                            isFailure.value = true
-                            Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
-                        }
-                    )
+//                    onClick()
                 }) {
                     if (isLoading.value) {
                         CircularProgressIndicator()

@@ -84,7 +84,7 @@ fun MainScreen(navHostController: NavController) {
                 .padding(paddingValues)
                 .imePadding()
         ) {
-            HomeNavHost(navHostController = navController)
+            HomeNavHost(navHostController = navController, mainNavHostController = navHostController)
             navController.popBackStack()
             navController.navigate(route = selectedItem.value)
         }
@@ -92,16 +92,16 @@ fun MainScreen(navHostController: NavController) {
 }
 
 @Composable
-fun HomeNavHost(navHostController: NavHostController){
+fun HomeNavHost(navHostController: NavHostController, mainNavHostController: NavController){
     NavHost(
         navController = navHostController,
         startDestination = Screen.Home.route,
     ) {
-        composable(Screen.Home.route) { HomeScreen() }
-        composable(Screen.Chat.route) { ChatScreen() }
+        composable(Screen.Home.route) { HomeScreen(mainNavHostController) }
+        composable(Screen.Chat.route) { ChatScreen(mainNavHostController) }
         composable(Screen.Profile.route) {
             ProfileScreen(
-                navHostController,
+                mainNavHostController,
                 ProfileController()
             )
         }

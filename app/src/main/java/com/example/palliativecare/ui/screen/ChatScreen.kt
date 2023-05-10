@@ -20,11 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.model.ChatUser
 
 @Composable
-fun ChatScreen() {
+fun ChatScreen(navController: NavController) {
     val userList = listOf(
         ChatUser(
             name = "سامر مشتهى",

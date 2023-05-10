@@ -33,12 +33,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.model.ChatUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatDetailsScreen() {
+fun ChatDetailsScreen(navController: NavController) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = {

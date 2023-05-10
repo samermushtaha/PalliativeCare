@@ -59,16 +59,16 @@ fun MyNavHost(navHostController: NavHostController, isLoggedIn: Boolean) {
             MainScreen(navHostController)
         }
         composable(route = "chat_details_screen") {
-            ChatDetailsScreen()
+            ChatDetailsScreen(navHostController)
         }
         composable(route = "article_details_screen") {
-            ArticleDetailsScreen()
+            ArticleDetailsScreen(navHostController)
         }
         composable(route = "comment_screen") {
-            CommentScreen()
+            CommentScreen(navHostController)
         }
         composable(route = "history_screen") {
-            HistoryScreen()
+            HistoryScreen(navHostController)
         }
         composable(route = "add_article_screen") {
             AddArticleScreen(articleController = ArticleController(), navController = navHostController)
