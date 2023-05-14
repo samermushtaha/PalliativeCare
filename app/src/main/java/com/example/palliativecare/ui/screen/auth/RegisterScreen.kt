@@ -1,4 +1,4 @@
-package com.example.palliativecare.ui.screen
+package com.example.palliativecare.ui.screen.auth
 
 import android.net.Uri
 import android.widget.Toast

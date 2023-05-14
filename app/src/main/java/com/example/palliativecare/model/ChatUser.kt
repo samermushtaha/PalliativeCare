@@ -4,5 +4,7 @@ data class ChatUser(
     val image: String,
     val name: String,
     val phone: String,
-    val lastMessageDate: String = "12:00"
+    val userType: String,
+    val lastMessageDate: String = "",
+    val id: String
 )

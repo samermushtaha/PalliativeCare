@@ -1,4 +1,4 @@
-package com.example.palliativecare.ui.screen
+package com.example.palliativecare.ui.screen.profile
 
 import android.net.Uri
 import android.util.Log
@@ -43,8 +43,6 @@ import com.example.palliativecare.model.User
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.FirebaseStorage
-import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

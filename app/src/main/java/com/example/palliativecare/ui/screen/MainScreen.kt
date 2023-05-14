@@ -21,8 +21,11 @@ import androidx.compose.ui.tooling.preview.*
 import androidx.compose.ui.unit.*
 import androidx.navigation.*
 import androidx.navigation.compose.*
+import com.example.palliativecare.controller.chat.ChatController
 import com.example.palliativecare.controller.profile.ProfileController
 import com.example.palliativecare.model.Screen
+import com.example.palliativecare.ui.screen.chat.ChatScreen
+import com.example.palliativecare.ui.screen.profile.ProfileScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +110,7 @@ fun HomeNavHost(
         startDestination = Screen.Home.route,
     ) {
         composable(Screen.Home.route) { HomeScreen(mainNavHostController) }
-        composable(Screen.Chat.route) { ChatScreen(mainNavHostController) }
+        composable(Screen.Chat.route) { ChatScreen(mainNavHostController, ChatController()) }
         composable(Screen.Profile.route) {
             ProfileScreen(
                 mainNavHostController,

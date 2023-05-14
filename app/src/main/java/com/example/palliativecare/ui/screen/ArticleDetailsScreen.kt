@@ -87,6 +87,9 @@ fun ArticleDetailsScreen(navController: NavController) {
                         "https://randomuser.me/api/portraits/men/1.jpg",
                         "د. سامر مشتهى",
                         "059212665",
+                        "طبيب",
+                        "12:00",
+                        "1"
                     )
                 )
                 Text(

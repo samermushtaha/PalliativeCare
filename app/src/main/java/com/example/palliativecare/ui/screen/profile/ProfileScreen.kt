@@ -1,8 +1,9 @@
-package com.example.palliativecare.ui.screen
+package com.example.palliativecare.ui.screen.profile
 
 import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,7 +84,8 @@ fun ProfileScreen(
                 contentDescription = "Profile picture",
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .border(1.dp, Color.Red, CircleShape),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(10.dp))
