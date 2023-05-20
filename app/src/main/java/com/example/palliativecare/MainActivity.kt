@@ -20,8 +20,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.palliativecare.controller.article.ArticleController
 import com.example.palliativecare.controller.auth.AuthController
+import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.controller.chat.ChatController
 import com.example.palliativecare.controller.chat.ChatDetailsController
+import com.example.palliativecare.controller.comment.CommentController
 import com.example.palliativecare.controller.profile.ProfileController
 import com.example.palliativecare.ui.screen.AddArticleScreen
 import com.example.palliativecare.ui.screen.ArticleDetailsScreen
@@ -120,11 +122,13 @@ fun MyNavHost(navHostController: NavHostController, preferences: SharedPreferenc
             )
         }
 
-        composable(route = "article_details_screen") {
-            ArticleDetailsScreen(navHostController)
+        composable(route = "article_details_screen/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id")
+            ArticleDetailsScreen(navHostController, ArticleController(), id.toString())
         }
-        composable(route = "comment_screen") {
-            CommentScreen(navHostController)
+        composable(route = "comment_screen/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id")
+            CommentScreen(navHostController, CommentController(), id.toString())
         }
         composable(route = "edit_profile_screen") {
             EditProfileScreen(navHostController, ProfileController())
@@ -135,7 +139,8 @@ fun MyNavHost(navHostController: NavHostController, preferences: SharedPreferenc
         composable(route = "add_article_screen") {
             AddArticleScreen(
                 articleController = ArticleController(),
-                navController = navHostController
+                navController = navHostController,
+                categoryController = CategoryController()
             )
         }
     }

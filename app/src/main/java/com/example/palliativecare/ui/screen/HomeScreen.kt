@@ -38,10 +38,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,13 +58,33 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.R
+import com.example.palliativecare.controller.article.ArticleController
+import com.example.palliativecare.controller.category.CategoryController
+import com.example.palliativecare.model.Article
+import com.example.palliativecare.model.Category
+import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    articleController: ArticleController,
+    categoryController: CategoryController
+) {
     val image = remember { mutableStateOf<Uri?>(null) }
-    val selectedTopic = remember { mutableStateOf("") }
-    val topics = remember { mutableStateListOf("الكل", "مرض السكري", "فقر الدم", "مرض السرطان", "امراض القلب") }
+    val selectedTopic = remember { mutableStateOf<Category>(Category("1", "الكل")) }
+    val topics = remember { mutableStateListOf<Category>() }
     var query by remember { mutableStateOf("") }
+    val articles = remember { mutableStateListOf<Article>() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        articles.addAll(articleController.getAllArticle())
+    }
+
+    LaunchedEffect(Unit) {
+        topics.add(Category("1", "الكل"))
+        topics.addAll(categoryController.getAllCategory())
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         RoundedSearchBar(query = query, onQueryChange = { it -> query = it }, onSearchClick = {})
@@ -73,9 +95,22 @@ fun HomeScreen(navController: NavController) {
         ) {
             items(topics) { topic ->
                 TopicItem(
-                    selected = topic == selectedTopic.value,
-                    text = topic,
-                    onSelectedChange = { selectedTopic.value = topic }
+                    selected = topic.id == selectedTopic.value.id,
+                    text = topic.name,
+                    onSelectedChange = {
+                        selectedTopic.value = topic
+                        if(selectedTopic.value.name == "الكل"){
+                            coroutineScope.launch {
+                                articles.clear()
+                                articles.addAll(articleController.getAllArticle())
+                            }
+                        }else{
+                            coroutineScope.launch {
+                                articles.clear()
+                                articles.addAll(articleController.getArticleByCategory(selectedTopic.value.id))
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -84,18 +119,20 @@ fun HomeScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(5) {
+            items(articles) { article ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
                         .padding(horizontal = 16.dp)
-                        .clickable { },
+                        .clickable {
+                            navController.navigate("article_details_screen/${article.id}")
+                        },
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         AsyncImage(
-                            model = image.value ?: R.drawable.topic,
+                            model = article.picture,
                             contentDescription = "Profile picture",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -106,7 +143,7 @@ fun HomeScreen(navController: NavController) {
                                 .fillMaxSize()
                         )
                         Text(
-                            text = "ارتفعت معدلات الوفيات المبكرة الناجمة عن داء السكري بنسبة 3% في الفترة بين عامي 2000 و2019",
+                            text = article.title,
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier
@@ -114,7 +151,7 @@ fun HomeScreen(navController: NavController) {
                                 .padding(16.dp)
                         )
                         Text(
-                            text = "د. سامر مشتهى",
+                            text = article.doctorId,
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier
@@ -122,9 +159,9 @@ fun HomeScreen(navController: NavController) {
                                 .padding(16.dp)
                         )
                         Text(
-                            text = "18/04/2023",
+                            text = article.createdAt,
                             color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(16.dp)

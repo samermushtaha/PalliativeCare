@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -24,6 +25,12 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,15 +39,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.palliativecare.controller.comment.CommentController
+import com.example.palliativecare.model.Article
+import com.example.palliativecare.model.Comment
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CommentScreen(navController: NavController) {
+fun CommentScreen(navController: NavController, commentController: CommentController, id: String) {
+    val comment = remember { mutableStateOf("") }
+    val comments = remember { mutableStateListOf<Comment>() }
+    val currentDate = Calendar.getInstance().time
+    val dateFormat = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault())
+    val createdAt = dateFormat.format(currentDate).toString()
+
+    LaunchedEffect(Unit) {
+        comments.addAll(commentController.getComments(id))
+    }
+
     Column {
         TopAppBar(
             title = { Text(text = "التعليقات") },
             navigationIcon = {
-                IconButton(onClick = { /*TODO*/ }) {
+                IconButton(onClick = { navController.popBackStack() }) {
                     Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                 }
             }
@@ -49,7 +72,7 @@ fun CommentScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(5) {
+            items(comments) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -70,12 +93,12 @@ fun CommentScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             Text(
-                                "12:30",
+                                it.dateTime,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
                         Text(
-                            text = "تعليق تعليق تعليق تعليق",
+                            text = it.title,
                             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.secondary)
                         )
                     }
@@ -84,9 +107,11 @@ fun CommentScreen(navController: NavController) {
         }
 
         TextField(
-            value = "",
-            onValueChange = { },
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            value = comment.value,
+            onValueChange = { comment.value = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = CircleShape,
             colors = TextFieldDefaults.textFieldColors(
                 disabledTextColor = Color.Transparent,
@@ -96,7 +121,18 @@ fun CommentScreen(navController: NavController) {
             ),
             leadingIcon = {
                 IconButton(
-                    onClick = { },
+                    onClick = {
+                        commentController.addComment(
+                            Comment(
+                                title = comment.value,
+                                userId = "1",
+                                articleId = id,
+                                dateTime = createdAt
+                            ),
+                            {},
+                            {}
+                        )
+                    },
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Icon(

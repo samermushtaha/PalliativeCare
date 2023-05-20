@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,21 +16,28 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -37,7 +45,9 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.R
 import com.example.palliativecare.controller.article.ArticleController
+import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
+import com.example.palliativecare.model.Category
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -46,6 +56,7 @@ import java.util.Locale
 @Composable
 fun AddArticleScreen(
     articleController: ArticleController,
+    categoryController: CategoryController,
     navController: NavController
 ) {
     val image = remember { mutableStateOf<Uri?>(null) }
@@ -53,12 +64,13 @@ fun AddArticleScreen(
     val isFailure = remember { mutableStateOf(false) }
     val title = remember { mutableStateOf("") }
     val description = remember { mutableStateOf("") }
-    val categoryId = remember { mutableStateOf("") }
+//    val categoryId = remember { mutableStateOf("") }
     val context = LocalContext.current
     val currentDate = Calendar.getInstance().time
     val dateFormat = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault())
     val createdAt = dateFormat.format(currentDate).toString()
-    val options = listOf("فقر الدم", "السرطان", "امراض القلب")
+    var selectedTopic = remember { mutableStateOf<Category>(Category("1", "اختر التصنيف")) }
+    val topics = remember { mutableStateListOf<Category>() }
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -68,26 +80,36 @@ fun AddArticleScreen(
         }
     )
 
-    fun onClick(){
+    LaunchedEffect(Unit) {
+        topics.addAll(categoryController.getAllCategory())
+    }
+
+    fun onClick() {
         isLoading.value = true
-        articleController.addArticle(
-            Article(
-                image = image.value,
-                title = title.value,
-                description = description.value,
-                categoryId = categoryId.value,
-                createdAt = createdAt,
-                doctorId = "1"
-            ),
-            onSuccess = {
-                isLoading.value = false
-                navController.popBackStack()
+        articleController.uploadImage(
+            imageUri = image.value!!,
+            onSuccess = {uri ->
+                articleController.addArticle(
+                    Article(
+                        title = title.value,
+                        description = description.value,
+                        categoryId = selectedTopic.value.id,
+                        createdAt = createdAt,
+                        doctorId = "1",
+                        picture = uri
+                    ),
+                    onSuccess = {
+                        isLoading.value = false
+                        navController.popBackStack()
+                    },
+                    onFailure = {
+                        isLoading.value = false
+                        isFailure.value = true
+                        Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
+                    }
+                )
             },
-            onFailure = {
-                isLoading.value = false
-                isFailure.value = true
-                Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
-            }
+            onFailure = {Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show()}
         )
     }
 
@@ -96,12 +118,12 @@ fun AddArticleScreen(
             title = { Text(text = "اضافة مقالة") },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "")
+                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                 }
             },
             actions = {
                 Button(onClick = {
-//                    onClick()
+                    onClick()
                 }) {
                     if (isLoading.value) {
                         CircularProgressIndicator()
@@ -113,7 +135,7 @@ fun AddArticleScreen(
             }
         )
         AsyncImage(
-            model = image.value ?: R.drawable.topic,
+            model = image.value ?: R.drawable.add_a_photo,
             contentDescription = "Profile picture",
             modifier = Modifier
                 .fillMaxHeight(0.3f)
@@ -124,31 +146,36 @@ fun AddArticleScreen(
                     )
                 }
                 .padding(horizontal = 16.dp),
-            contentScale = ContentScale.Crop
+            contentScale = if(image.value != null) ContentScale.Crop else ContentScale.None
         )
         Spacer(modifier = Modifier.height(16.dp))
         TextField(
-            value = "",
-            onValueChange = { },
+            value = title.value,
+            onValueChange = { title.value = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp),
+            placeholder = { Text(text = "العنوان") }
         )
         Spacer(modifier = Modifier.height(16.dp))
         TextField(
-            value = "",
-            onValueChange = { },
+            value = description.value,
+            onValueChange = { description.value = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 100.dp)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp),
+            placeholder = { Text(text = "وصف المقالة") }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Spinner(
-            selectedOptionText = categoryId.value,
-            options = options,
+        DropdownMenuExample(
+            selectedItem = selectedTopic.value,
+            items = topics,
             onSelectedItem = {
-                categoryId.value = it
+                selectedTopic.value.name = it
+            },
+            onSelectedItem2 = {
+                selectedTopic.value = it
             }
         )
     }
@@ -156,47 +183,39 @@ fun AddArticleScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Spinner(
-    selectedOptionText: String,
-    options: List<String>,
-    onSelectedItem: (String) -> Unit
+fun DropdownMenuExample(
+    selectedItem: Category,
+    items: List<Category>,
+    onSelectedItem: (String) -> Unit,
+    onSelectedItem2: (Category) -> Unit,
 ) {
     val expanded = remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded.value,
-        onExpandedChange = {
-            expanded.value = !expanded.value
-        }
-    ) {
+    Column {
         TextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             readOnly = true,
-            value = selectedOptionText,
-            onValueChange = { },
-            label = { Text("المواضيع") },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(
-                    expanded = expanded.value
-                )
-            },
-            colors = ExposedDropdownMenuDefaults.textFieldColors()
+            value = if (selectedItem.name.isNotEmpty()) selectedItem.name else "اختر التصنيف",
+            onValueChange = {onSelectedItem(it) },
+            label = { Text("التصنيف") },
+            trailingIcon = { IconButton(onClick = { expanded.value = !expanded.value }) {
+                Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "")
+            }}
         )
-        ExposedDropdownMenu(
+
+        DropdownMenu(
             expanded = expanded.value,
-            onDismissRequest = {
-                expanded.value = false
-            }
+            onDismissRequest = { expanded.value = false }
         ) {
-            options.forEach { selectionOption ->
+            items.forEach { item ->
                 DropdownMenuItem(
+                    text = {Text(text = item.name)},
                     onClick = {
-                        onSelectedItem(selectionOption)
+                        onSelectedItem2(item)
                         expanded.value = false
-                    },
-                    text = {
-                        Text(text = selectionOption)
-                    }
-                )
+                    })
             }
         }
     }

@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,19 +41,26 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.R
+import com.example.palliativecare.controller.article.ArticleController
+import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.ChatUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArticleDetailsScreen(navController: NavController) {
+fun ArticleDetailsScreen(navController: NavController, articleController: ArticleController, id: String) {
     val image = remember { mutableStateOf<Uri?>(null) }
+    val article =  remember { mutableStateOf(Article()) }
+
+    LaunchedEffect(Unit){
+        article.value = articleController.getArticleByID(id).first()
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "") },
                 navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                     }
                 },
@@ -62,7 +70,7 @@ fun ArticleDetailsScreen(navController: NavController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    //OnClick Method
+                    navController.navigate("comment_screen/$id")
                 },
             ) {
                 Icon(
@@ -75,7 +83,7 @@ fun ArticleDetailsScreen(navController: NavController) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
                 AsyncImage(
-                    model = image.value ?: R.drawable.topic,
+                    model = article.value.picture,
                     contentDescription = "Profile picture",
                     modifier = Modifier
                         .fillMaxHeight(0.3f)
@@ -94,7 +102,13 @@ fun ArticleDetailsScreen(navController: NavController) {
                 )
                 Text(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    text = "داء السكري مرض مزمن يحدث عندما يعجز البنكرياس عن إنتاج الإنسولين بكمية كافية، أو عندما يعجز الجسم عن الاستخدام الفعال للإنسولين الذي ينتجه. والإنسولين هو هرمون يضبط مستوى الغلوكوز في الدم. ويُعد فرط السكر في الدم، الذي يعرف أيضا بارتفاع مستوى الغلوكوز في الدم، من النتائج الشائعة الدالة على خلل في ضبط مستوى السكر في الدم، ويؤدي مع مرور الوقت إلى الإضرار الخطير بالعديد من أجهزة الجسم، ولاسيما الأعصاب والأوعية الدموية."
+                    text = article.value.title,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    text = article.value.description
                 )
             }
         }
@@ -132,7 +146,7 @@ fun DoctorInfo(user: ChatUser) {
         Button(
             onClick = { },
         ) {
-            Text("تواصل معي")
+            Text("متابعة")
         }
     }
 }
