@@ -1,6 +1,9 @@
 package com.example.palliativecare.model
 
 import android.net.Uri
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 
 data class User(
     var name: String= "",
@@ -11,7 +14,18 @@ data class User(
     var birthdate: String = "",
     var image: String = "",
     var userType: String = ""
-)
+){
+    companion object {
+        suspend fun getUserByID(id: String): List<User> {
+            return Firebase.firestore.collection("users").get().await().documents
+                .filter { documentSnapshot ->
+                    documentSnapshot.id == id
+                }.map { documentSnapshot ->
+                    documentSnapshot.toObject(User::class.java)!!
+                }
+        }
+    }
+}
 
 
 data class LoginUser(

@@ -57,7 +57,7 @@ fun ChatDetailsScreen(
     name: String?,
     phone: String?,
     userType: String?,
-    image: String?
+    image: String?,
 ) {
     var messages by remember { mutableStateOf(emptyList<ChatDetailsController.Message>()) }
 
@@ -108,7 +108,7 @@ fun ChatDetailsScreen(
             },
             navigationIcon = {
                 IconButton(onClick = {
-                    navController.navigate("chat_screen")
+                    navController.popBackStack()
                 }) {
                     Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                 }
@@ -161,7 +161,9 @@ fun ChatDetailsScreen(
 //        }
 
         MessageInput(onMessageSent = { message ->
-            chatController.sendMessage(message)
+            if (message.isNotBlank()) {
+                chatController.sendMessage(message)
+            }
         })
     }
 }
@@ -242,11 +244,13 @@ fun ChatBubbleSender(message: String, timestamp: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageInput(
-    onMessageSent: (String) -> Unit
+    onMessageSent: (String) -> Unit,
 ) {
     var message by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxWidth().background(Color.Black)){
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .background(Color.Black)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -280,7 +284,10 @@ fun MessageInput(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .background(color = MaterialTheme.colorScheme.primary, shape = CircleShape),
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            ),
                         contentAlignment = Alignment.Center,
                         content = {
                             IconButton(

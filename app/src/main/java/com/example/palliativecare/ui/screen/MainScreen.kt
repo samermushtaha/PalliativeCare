@@ -26,8 +26,11 @@ import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.controller.chat.ChatController
 import com.example.palliativecare.controller.profile.ProfileController
 import com.example.palliativecare.model.Screen
+import com.example.palliativecare.model.User
 import com.example.palliativecare.ui.screen.chat.ChatScreen
 import com.example.palliativecare.ui.screen.profile.ProfileScreen
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +43,14 @@ fun MainScreen(navHostController: NavController, preferences: SharedPreferences)
         Screen.Chat,
         Screen.Profile
     )
+    val userId =  FirebaseAuth.getInstance().currentUser?.uid?:" "
+    val userType = remember {
+        mutableStateOf("")
+    }
 
+    LaunchedEffect(Unit){
+        userType.value = User.getUserByID(userId).first().userType
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -48,7 +58,7 @@ fun MainScreen(navHostController: NavController, preferences: SharedPreferences)
             )
         },
         floatingActionButton = {
-            if (selectedItem.value == Screen.Home.route) {
+            if (selectedItem.value == Screen.Home.route && userType.value == "طبيب") {
                 FloatingActionButton(onClick = { navHostController.navigate("add_article_screen") }) {
                     Icon(
                         imageVector = Icons.Default.Add,

@@ -62,6 +62,7 @@ import com.example.palliativecare.controller.article.ArticleController
 import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
+import com.example.palliativecare.model.User
 import kotlinx.coroutines.launch
 
 @Composable
@@ -76,6 +77,10 @@ fun HomeScreen(
     var query by remember { mutableStateOf("") }
     val articles = remember { mutableStateListOf<Article>() }
     val coroutineScope = rememberCoroutineScope()
+//    val searchQuery = remember { mutableStateOf("") }
+
+
+
 
     LaunchedEffect(Unit) {
         articles.addAll(articleController.getAllArticle())
@@ -84,6 +89,10 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         topics.add(Category("1", "الكل"))
         topics.addAll(categoryController.getAllCategory())
+    }
+
+    val filteredArticles = articles.filter {
+        it.title.contains(query, ignoreCase = true)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -119,7 +128,16 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(articles) { article ->
+            items(filteredArticles) { article ->
+                val doctorName = remember {
+                    mutableStateOf("")
+                }
+                LaunchedEffect(Unit){
+                    coroutineScope.launch {
+                        doctorName.value = User.getUserByID(article.doctorId).first().name
+                    }
+                }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,8 +168,9 @@ fun HomeScreen(
                                 .align(Alignment.TopStart)
                                 .padding(16.dp)
                         )
+
                         Text(
-                            text = article.doctorId,
+                            text = doctorName.value,
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier

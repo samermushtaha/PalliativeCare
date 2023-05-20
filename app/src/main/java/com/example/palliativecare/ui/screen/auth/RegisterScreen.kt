@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,7 +47,7 @@ import com.example.palliativecare.model.User
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    registerController: AuthController
+    registerController: AuthController,
 ) {
     val context = LocalContext.current
     val registrationInProgress = remember { mutableStateOf(false) }
@@ -55,9 +57,9 @@ fun RegisterScreen(
     val confirmPassword = remember { mutableStateOf("") }
     val birthdate = remember { mutableStateOf("") }
     val email = remember { mutableStateOf("") }
-    val userType = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val image = remember { mutableStateOf<Uri?>(null) }
+    val selectedUserType = remember { mutableStateOf(0) }
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -155,78 +157,56 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedTextField(
-            value = userType.value,
-            onValueChange = { userType.value = it },
-            label = { Text("نوع المستخدم (مريض / طبيب)") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Text(text = " نوع المستخدم (مريض / طبيب)")
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically,) {
+                RadioButton(selected = selectedUserType.value == 0, onClick = {
+                    selectedUserType.value = 0
+                })
+                Text(text = "طبيب", modifier = Modifier.padding(horizontal = 4.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically,) {
+                RadioButton(selected = selectedUserType.value == 1, onClick = {
+                    selectedUserType.value = 1
+                })
+                Text(text = "مريض", modifier = Modifier.padding(horizontal = 4.dp))
+            }
+        }
 
         Button(
             onClick = {
-                if (userType.value == "مريض") {
-                    image.value?.let { imageUri ->
-                        registrationInProgress.value = true
-                        registerController.uploadImage(
-                            imageUri = imageUri,
-                            onSuccess = { downloadUrl ->
-                                Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
-                                    .show()
-                                val user = User(
-                                    email = email.value,
-                                    name = name.value,
-                                    password = password.value,
-                                    phoneNumber = phoneNumber.value,
-                                    address = address.value,
-                                    birthdate = birthdate.value,
-                                    image = downloadUrl,
-                                    userType = userType.value
-                                )
-                                registerController.registerUser(user, context)
-                                registrationInProgress.value = false
-                            },
-                            onFailure = { exception ->
-                                Toast.makeText(
-                                    context,
-                                    "Upload failed $exception",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                registrationInProgress.value = false
-                            }
-                        )
-                    }
-                } else if (userType.value == "طبيب") {
-                    image.value?.let { imageUri ->
-                        registrationInProgress.value = true
-                        registerController.uploadImage(
-                            imageUri = imageUri,
-                            onSuccess = { downloadUrl ->
-                                Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
-                                    .show()
-                                val user = User(
-                                    email = email.value,
-                                    name = name.value,
-                                    password = password.value,
-                                    phoneNumber = phoneNumber.value,
-                                    address = address.value,
-                                    birthdate = birthdate.value,
-                                    image = downloadUrl,
-                                    userType = userType.value
-                                )
-                                registerController.registerUser(user, context)
-                                registrationInProgress.value = false
-                            },
-                            onFailure = { exception ->
-                                Toast.makeText(
-                                    context,
-                                    "Upload failed $exception",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                registrationInProgress.value = false
-                            }
-                        )
-                    }
-                }
+                image.value?.let { imageUri ->
+                    registrationInProgress.value = true
+                    registerController.uploadImage(
+                        imageUri = imageUri,
+                        onSuccess = { downloadUrl ->
+                            Toast.makeText(context, "تم التسجيل بنجاح", Toast.LENGTH_SHORT).show()
+                            val user = User(
+                                email = email.value,
+                                name = name.value,
+                                password = password.value,
+                                phoneNumber = phoneNumber.value,
+                                address = address.value,
+                                birthdate = birthdate.value,
+                                image = downloadUrl,
+                                userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
+                            )
+                            registerController.registerUser(user, context)
+                            registrationInProgress.value = false
+                        },
+                        onFailure = { _ ->
+                            Toast.makeText(context, "فشل التسجيل", Toast.LENGTH_SHORT).show()
+                            registrationInProgress.value = false
+                        }
+                    )
+                }?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
+
+
             },
             modifier = Modifier
                 .fillMaxWidth()

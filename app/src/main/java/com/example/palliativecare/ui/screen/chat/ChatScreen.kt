@@ -94,7 +94,7 @@ fun ChatScreen(
                 .heightIn(min = 48.dp),
             placeholder = {
                 Text(
-                    text = "بحث عن طبيب للتواصل...",
+                    text = "بحث ...",
                     color = Color.Gray,
                 )
             },

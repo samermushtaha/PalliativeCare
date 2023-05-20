@@ -9,6 +9,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.R
@@ -43,6 +47,7 @@ import com.example.palliativecare.model.User
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlin.jvm.Throws
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +68,7 @@ fun EditProfileScreen(
     val userType = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val image = remember { mutableStateOf<Uri?>(null) }
+    val selectedUserType = remember { mutableStateOf(0) }
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -89,6 +95,7 @@ fun EditProfileScreen(
                 email.value = user?.email ?: ""
                 userType.value = user?.userType ?: ""
                 password.value = user?.password ?: ""
+                selectedUserType.value = if (userType.value == "طبيب") 0 else 1
             }
         }
     }
@@ -185,19 +192,38 @@ fun EditProfileScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedTextField(
-            value = userType.value,
-            onValueChange = { userType.value = it },
-            label = { Text("نوع المستخدم (مريض / طبيب)") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        /*        OutlinedTextField(
+                    value = userType.value,
+                    onValueChange = { userType.value = it },
+                    label = { Text("نوع المستخدم (مريض / طبيب)") },
+                    modifier = Modifier.fillMaxWidth()
+                )*/
+        Text(text = " نوع المستخدم (مريض / طبيب)")
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = selectedUserType.value == 0,
+                    onClick = { selectedUserType.value = 0 })
+                Text(text = "طبيب", modifier = Modifier.padding(horizontal = 4.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = selectedUserType.value == 1,
+                    onClick = { selectedUserType.value = 1 })
+                Text(text = "مريض", modifier = Modifier.padding(horizontal = 4.dp))
+            }
+        }
+
 
         Button(
             onClick = {
-                image.value?.let { imageUri ->
-                    editProfileProgress.value = true
+                editProfileProgress.value = true
+                image.value?.let{
                     profileController.uploadImage(
-                        imageUri = imageUri,
+                        imageUri = it,
                         onSuccess = { downloadUrl ->
                             Log.e("image", downloadUrl)
                             Toast.makeText(context, "Uploaded successful!", Toast.LENGTH_SHORT)
@@ -209,7 +235,7 @@ fun EditProfileScreen(
                                 user.address = address.value
                                 user.birthdate = birthdate.value
                                 user.image = downloadUrl
-                                user.userType = userType.value
+                                user.userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
                                 editProfileProgress.value = true
                                 profileController.updateProfileInFirestore(user) { success ->
                                     editProfileProgress.value = false
@@ -234,6 +260,31 @@ fun EditProfileScreen(
                         }
                     )
                 }
+
+                currentUser.value?.let { user ->
+                    user.name = name.value
+                    user.email = email.value
+                    user.phoneNumber = phoneNumber.value
+                    user.address = address.value
+                    user.birthdate = birthdate.value
+                    user.image = currentUser.value?.image!!
+                    user.userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
+                    editProfileProgress.value = true
+                    profileController.updateProfileInFirestore(user) { success ->
+                        editProfileProgress.value = false
+                        if (success) {
+                            Log.d("DEBUG", "Profile update successful")
+                        } else {
+                            Log.d("DEBUG", "Profile update failed")
+                        }
+                        // Enable the button after the profile update is complete
+                        editProfileProgress.value = false
+                    }
+                }
+
+
+
+
 
             },
             modifier = Modifier.fillMaxWidth(),

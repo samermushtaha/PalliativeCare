@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -48,6 +49,7 @@ import com.example.palliativecare.controller.article.ArticleController
 import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -85,32 +87,36 @@ fun AddArticleScreen(
     }
 
     fun onClick() {
-        isLoading.value = true
-        articleController.uploadImage(
-            imageUri = image.value!!,
-            onSuccess = {uri ->
-                articleController.addArticle(
-                    Article(
-                        title = title.value,
-                        description = description.value,
-                        categoryId = selectedTopic.value.id,
-                        createdAt = createdAt,
-                        doctorId = "1",
-                        picture = uri
-                    ),
-                    onSuccess = {
-                        isLoading.value = false
-                        navController.popBackStack()
-                    },
-                    onFailure = {
-                        isLoading.value = false
-                        isFailure.value = true
-                        Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            },
-            onFailure = {Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show()}
-        )
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        image.value?.let{ imageUri->
+            isLoading.value = true
+            articleController.uploadImage(
+                imageUri = imageUri,
+                onSuccess = {uri ->
+                    articleController.addArticle(
+                        Article(
+                            title = title.value,
+                            description = description.value,
+                            categoryId = selectedTopic.value.id,
+                            createdAt = createdAt,
+                            doctorId = currentUser?.uid.toString(),
+                            picture = uri
+                        ),
+                        onSuccess = {
+                            isLoading.value = false
+                            navController.popBackStack()
+                        },
+                        onFailure = {
+                            isLoading.value = false
+                            isFailure.value = true
+                            Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                },
+                onFailure = {Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show()}
+            )
+        }?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
+
     }
 
     Column {
@@ -126,7 +132,7 @@ fun AddArticleScreen(
                     onClick()
                 }) {
                     if (isLoading.value) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator( color = Color.White)
                     } else {
                         Text(text = "اضافة")
                     }

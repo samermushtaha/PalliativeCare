@@ -126,30 +126,6 @@ fun ProfileScreen(
                 tint = MaterialTheme.colorScheme.surfaceTint
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { },
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_history),
-                contentDescription = "",
-                modifier = Modifier.size(30.dp),
-                tint = MaterialTheme.colorScheme.surfaceTint
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = "السجل")
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                painter = painterResource(id = R.drawable.ic_arrow_forward),
-                contentDescription = "",
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.surfaceTint
-            )
-        }
         Spacer(modifier = Modifier.weight(1f))
         Button(
             onClick = {
