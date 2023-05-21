@@ -2,6 +2,7 @@ package com.example.palliativecare.ui.screen
 
 import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.Button
@@ -98,7 +101,7 @@ fun ArticleDetailsScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             doctor.value?.let { doctor ->
-                Column {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                     AsyncImage(
                         model = article.value.picture,
                         contentDescription = "Profile picture",
@@ -144,11 +147,12 @@ fun ArticleDetailsScreen(
                         text = article.value.title,
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         text = article.value.description
                     )
+                    Spacer(modifier = Modifier.height(50.dp))
                 }
             }
 
