@@ -1,7 +1,6 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +27,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +46,8 @@ import com.example.palliativecare.controller.article.ArticleController
 import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.ChatUser
+import com.example.palliativecare.model.User
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,10 +59,17 @@ fun ArticleDetailsScreen(
 ) {
     val image = remember { mutableStateOf<Uri?>(null) }
     val article = remember { mutableStateOf(Article()) }
-
+    val doctor = remember { mutableStateOf<User?>(null) }
+    val isUserSubscriber = remember { mutableStateOf(false) }
+    val currentUser = FirebaseAuth.getInstance().currentUser!!
     LaunchedEffect(Unit) {
         article.value = articleController.getArticleByID(id).first()
+        doctor.value = User.getUserByID(article.value.doctorId).first()
+        CategoryController().getCategorySubscribers(article.value.categoryId) { subscribersMap -> // [userID to userToken]
+            isUserSubscriber.value = subscribersMap.keys.contains(currentUser.uid)
+        }
     }
+
 
     Scaffold(
         topBar = {
@@ -88,47 +97,61 @@ fun ArticleDetailsScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            Column {
-                AsyncImage(
-                    model = article.value.picture,
-                    contentDescription = "Profile picture",
-                    modifier = Modifier
-                        .fillMaxHeight(0.3f)
-                        .fillMaxWidth(),
-                    contentScale = ContentScale.Crop
-                )
-                DoctorInfo(
-                    ChatUser(
-                        "https://randomuser.me/api/portraits/men/1.jpg",
-                        "د. سامر مشتهى",
-                        "059212665",
-                        "طبيب",
-                        "12:00",
-                        "1"
+            doctor.value?.let { doctor ->
+                Column {
+                    AsyncImage(
+                        model = article.value.picture,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier
+                            .fillMaxHeight(0.3f)
+                            .fillMaxWidth(),
+                        contentScale = ContentScale.Crop
                     )
-                ) {
-                    FirebaseMessaging.getInstance().token.addOnCompleteListener {
-                        CategoryController().addCategorySubscribersInFireStore(
-                            categoryId = article.value.categoryId,
-                            newToken =   it.result,
-                        ){success->
-                            if(success){
-                                Log.e("HZM ", "added new subscriber")
+                    DoctorInfo(
+                        user = ChatUser(
+                            doctor.image,
+                            doctor.name,
+                            doctor.phoneNumber,
+                            doctor.userType,
+                            "12:00",
+                            "1"
+                        ),
+                        isSubscribed = isUserSubscriber,
+                        onClickUnSubscribe = {
+                            CategoryController().removeSubscriberFromFireStore(
+                                categoryId = article.value.categoryId,
+                                userId = currentUser.uid,
+                                ){success->
+                                if (success){
+                                    isUserSubscriber.value = false
+                                }
+                            }
+                        }
+                    ) {
+                        FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                            CategoryController().addCategorySubscribersInFireStore(
+                                categoryId = article.value.categoryId,
+                                newToken = it.result,
+                            ) { success ->
+                                if (success) {
+                                    isUserSubscriber.value = true
+                                }
                             }
                         }
                     }
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = article.value.title,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = article.value.description
+                    )
                 }
-                Text(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    text = article.value.title,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    text = article.value.description
-                )
             }
+
         }
     }
 
@@ -136,7 +159,12 @@ fun ArticleDetailsScreen(
 }
 
 @Composable
-fun DoctorInfo(user: ChatUser, onClickSubscribe: () -> Unit) {
+fun DoctorInfo(
+    user: ChatUser,
+    isSubscribed: MutableState<Boolean>,
+    onClickUnSubscribe: () -> Unit,
+    onClickSubscribe: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .padding(16.dp),
@@ -162,9 +190,9 @@ fun DoctorInfo(user: ChatUser, onClickSubscribe: () -> Unit) {
         }
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = onClickSubscribe,
+            onClick = if (isSubscribed.value) onClickUnSubscribe else onClickSubscribe,
         ) {
-            Text("متابعة")
+            Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة")
         }
     }
 }

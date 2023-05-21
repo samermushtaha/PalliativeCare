@@ -3,6 +3,7 @@ package com.example.palliativecare.controller.category
 import android.util.Log
 import com.example.palliativecare.model.Category
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.getField
 import com.google.firebase.ktx.Firebase
@@ -39,13 +40,14 @@ class CategoryController {
                     if (categorySubscribersRef == null) {
                         db.collection("categorySubscribers").add(newSubscriber)
                             .addOnSuccessListener { newDocument ->
-                                callback(true)
                                 categoryRef.update("subscribers", newDocument)
+                                callback(true)
                             }.addOnFailureListener {
                                 callback(false)
                             }
                     } else {
                         categorySubscribersRef.update(newSubscriber as Map<String, String>)
+                        callback(true)
                     }
                 }
             }
@@ -54,16 +56,39 @@ class CategoryController {
 
     }
 
-    fun getCategorySubscribers(categoryId: String, callback: (HashMap<String,String>) -> Unit) {
+    fun removeSubscriberFromFireStore(
+        categoryId: String,
+        userId: String,
+        callback: (Boolean) -> Unit,
+    ) {
+        val db = Firebase.firestore
+        val categoryRef = db.collection("category").document(categoryId)
+
+        categoryRef.get().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val document = task.result
+                if (document != null && document.exists()) {
+                    val categorySubscribersRef = document.getDocumentReference("subscribers")
+                    categorySubscribersRef?.let {
+                        val updates = hashMapOf<String, Any>(userId to FieldValue.delete())
+                        it.update(updates)
+                        callback(true)
+                    }?: callback(false)
+                }
+            }
+        }
+    }
+
+    fun getCategorySubscribers(categoryId: String, callback: (HashMap<String, String>) -> Unit) {
         val db = Firebase.firestore
         db.collection("category").document(categoryId).get().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val document = task.result
                 if (document != null && document.exists()) {
                     val categorySubscribersRef = document.getDocumentReference("subscribers")
-                    categorySubscribersRef?.let {ref->
+                    categorySubscribersRef?.let { ref ->
                         ref.get().addOnSuccessListener {
-                            it.data?.let {map->
+                            it.data?.let { map ->
                                 callback(map as HashMap<String, String>)
                             }
                         }
