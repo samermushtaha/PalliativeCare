@@ -1,6 +1,7 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.ChatUser
 import com.example.palliativecare.model.User
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 
@@ -60,6 +63,7 @@ fun ArticleDetailsScreen(
     articleController: ArticleController,
     id: String,
 ) {
+
     val image = remember { mutableStateOf<Uri?>(null) }
     val article = remember { mutableStateOf(Article()) }
     val doctor = remember { mutableStateOf<User?>(null) }
@@ -72,6 +76,8 @@ fun ArticleDetailsScreen(
             isUserSubscriber.value = subscribersMap.keys.contains(currentUser.uid)
         }
     }
+
+
 
 
     Scaffold(
@@ -124,8 +130,8 @@ fun ArticleDetailsScreen(
                             CategoryController().removeSubscriberFromFireStore(
                                 categoryId = article.value.categoryId,
                                 userId = currentUser.uid,
-                                ){success->
-                                if (success){
+                            ) { success ->
+                                if (success) {
                                     isUserSubscriber.value = false
                                 }
                             }
@@ -169,6 +175,19 @@ fun DoctorInfo(
     onClickUnSubscribe: () -> Unit,
     onClickSubscribe: () -> Unit,
 ) {
+    val context = LocalContext.current
+    fun trackSubscriptionEvent(isSubscribed: Boolean) {
+        val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+
+        val eventName = if (isSubscribed) "Subscribe" else "Unsubscribe"
+
+        val params = Bundle().apply {
+            putString("Button", eventName)
+        }
+
+        firebaseAnalytics.logEvent("Subscription_Event", params)
+    }
+
     Row(
         modifier = Modifier
             .padding(16.dp),
@@ -194,7 +213,15 @@ fun DoctorInfo(
         }
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = if (isSubscribed.value) onClickUnSubscribe else onClickSubscribe,
+            onClick = {
+                if (isSubscribed.value) {
+                    onClickUnSubscribe()
+                    trackSubscriptionEvent(false) // Unsubscribe event tracked
+                } else {
+                    onClickSubscribe()
+                    trackSubscriptionEvent(true) // Subscribe event tracked
+                }
+            }
         ) {
             Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة")
         }
