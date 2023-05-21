@@ -1,6 +1,7 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,16 +43,22 @@ import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.R
 import com.example.palliativecare.controller.article.ArticleController
+import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.ChatUser
+import com.google.firebase.messaging.FirebaseMessaging
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArticleDetailsScreen(navController: NavController, articleController: ArticleController, id: String) {
+fun ArticleDetailsScreen(
+    navController: NavController,
+    articleController: ArticleController,
+    id: String,
+) {
     val image = remember { mutableStateOf<Uri?>(null) }
-    val article =  remember { mutableStateOf(Article()) }
+    val article = remember { mutableStateOf(Article()) }
 
-    LaunchedEffect(Unit){
+    LaunchedEffect(Unit) {
         article.value = articleController.getArticleByID(id).first()
     }
 
@@ -99,7 +106,18 @@ fun ArticleDetailsScreen(navController: NavController, articleController: Articl
                         "12:00",
                         "1"
                     )
-                )
+                ) {
+                    FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                        CategoryController().addCategorySubscribersInFireStore(
+                            categoryId = article.value.categoryId,
+                            newToken =   it.result,
+                        ){success->
+                            if(success){
+                                Log.e("HZM ", "added new subscriber")
+                            }
+                        }
+                    }
+                }
                 Text(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     text = article.value.title,
@@ -118,7 +136,7 @@ fun ArticleDetailsScreen(navController: NavController, articleController: Articl
 }
 
 @Composable
-fun DoctorInfo(user: ChatUser) {
+fun DoctorInfo(user: ChatUser, onClickSubscribe: () -> Unit) {
     Row(
         modifier = Modifier
             .padding(16.dp),
@@ -144,7 +162,7 @@ fun DoctorInfo(user: ChatUser) {
         }
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = { },
+            onClick = onClickSubscribe,
         ) {
             Text("متابعة")
         }

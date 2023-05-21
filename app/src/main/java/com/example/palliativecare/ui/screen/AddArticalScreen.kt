@@ -1,11 +1,11 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
@@ -23,21 +22,19 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -47,19 +44,26 @@ import coil.compose.AsyncImage
 import com.example.palliativecare.R
 import com.example.palliativecare.controller.article.ArticleController
 import com.example.palliativecare.controller.category.CategoryController
+import com.example.palliativecare.controller.notifications.NotificationController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
+import com.example.palliativecare.model.NotificationData
+import com.example.palliativecare.model.PushNotification
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddArticleScreen(
     articleController: ArticleController,
     categoryController: CategoryController,
-    navController: NavController
+    navController: NavController,
 ) {
     val image = remember { mutableStateOf<Uri?>(null) }
     val isLoading = remember { mutableStateOf(false) }
@@ -73,6 +77,7 @@ fun AddArticleScreen(
     val createdAt = dateFormat.format(currentDate).toString()
     var selectedTopic = remember { mutableStateOf<Category>(Category("1", "اختر التصنيف")) }
     val topics = remember { mutableStateListOf<Category>() }
+    val scope = rememberCoroutineScope()
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -85,14 +90,36 @@ fun AddArticleScreen(
     LaunchedEffect(Unit) {
         topics.addAll(categoryController.getAllCategory())
     }
+    fun sendNotificationToSubscribers(category: Category) {
+        CategoryController().getCategorySubscribers(category.id) {
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    it.values.forEach { token ->
+                        NotificationController.sendNotification(
+                            PushNotification(
+                                notification = NotificationData(
+                                    title = "تم نشر مقالة جديدة",
+                                    body = " مقالة جديدة في موضوع ${category.name}"
+                                ),
+                                to = token
+                            )
+                        )
+                    }
+                }
+                isLoading.value = false
+                navController.popBackStack()
+            }
+        }
+    }
+
 
     fun onClick() {
         val currentUser = FirebaseAuth.getInstance().currentUser
-        image.value?.let{ imageUri->
+        image.value?.let { imageUri ->
             isLoading.value = true
             articleController.uploadImage(
                 imageUri = imageUri,
-                onSuccess = {uri ->
+                onSuccess = { uri ->
                     articleController.addArticle(
                         Article(
                             title = title.value,
@@ -103,8 +130,7 @@ fun AddArticleScreen(
                             picture = uri
                         ),
                         onSuccess = {
-                            isLoading.value = false
-                            navController.popBackStack()
+                            sendNotificationToSubscribers(selectedTopic.value)
                         },
                         onFailure = {
                             isLoading.value = false
@@ -113,9 +139,10 @@ fun AddArticleScreen(
                         }
                     )
                 },
-                onFailure = {Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show()}
+                onFailure = { Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show() }
             )
-        }?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
+
+        } ?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
 
     }
 
@@ -132,7 +159,7 @@ fun AddArticleScreen(
                     onClick()
                 }) {
                     if (isLoading.value) {
-                        CircularProgressIndicator( color = Color.White)
+                        CircularProgressIndicator(color = Color.White)
                     } else {
                         Text(text = "اضافة")
                     }
@@ -152,7 +179,7 @@ fun AddArticleScreen(
                     )
                 }
                 .padding(horizontal = 16.dp),
-            contentScale = if(image.value != null) ContentScale.Crop else ContentScale.None
+            contentScale = if (image.value != null) ContentScale.Crop else ContentScale.None
         )
         Spacer(modifier = Modifier.height(16.dp))
         TextField(
@@ -204,11 +231,13 @@ fun DropdownMenuExample(
                 .padding(horizontal = 16.dp),
             readOnly = true,
             value = if (selectedItem.name.isNotEmpty()) selectedItem.name else "اختر التصنيف",
-            onValueChange = {onSelectedItem(it) },
+            onValueChange = { onSelectedItem(it) },
             label = { Text("التصنيف") },
-            trailingIcon = { IconButton(onClick = { expanded.value = !expanded.value }) {
-                Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "")
-            }}
+            trailingIcon = {
+                IconButton(onClick = { expanded.value = !expanded.value }) {
+                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "")
+                }
+            }
         )
 
         DropdownMenu(
@@ -217,7 +246,7 @@ fun DropdownMenuExample(
         ) {
             items.forEach { item ->
                 DropdownMenuItem(
-                    text = {Text(text = item.name)},
+                    text = { Text(text = item.name) },
                     onClick = {
                         onSelectedItem2(item)
                         expanded.value = false

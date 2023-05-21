@@ -121,7 +121,4 @@ class ProfileController {
                 onFailure(exception)
             }
     }
-
-
-
 }
