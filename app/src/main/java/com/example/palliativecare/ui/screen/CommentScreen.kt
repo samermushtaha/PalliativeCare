@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -24,22 +25,51 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.palliativecare.controller.comment.CommentController
+import com.example.palliativecare.model.Article
+import com.example.palliativecare.model.Comment
+import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CommentScreen() {
+fun CommentScreen(navController: NavController, commentController: CommentController, id: String) {
+    val comment = remember { mutableStateOf("") }
+    val comments = remember { mutableStateListOf<Comment>() }
+    val currentDate = Calendar.getInstance().time
+    val dateFormat = SimpleDateFormat("dd MMM", Locale("ar"))
+    val createdAt = dateFormat.format(currentDate).toString()
+    val isLoading = remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        comments.addAll(commentController.getComments(id))
+        isLoading.value = false
+    }
+    LoadingScreen(visibility = isLoading.value)
     Column {
         TopAppBar(
             title = { Text(text = "التعليقات") },
             navigationIcon = {
-                IconButton(onClick = { /*TODO*/ }) {
+                IconButton(onClick = { navController.popBackStack() }) {
                     Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                 }
             }
@@ -48,13 +78,17 @@ fun CommentScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(5) {
+            items(comments) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val user = remember { mutableStateOf(User()) }
+                    LaunchedEffect(Unit) {
+                        user.value = User.getUserByID(it.userId).first()
+                    }
                     Image(
-                        painter = rememberAsyncImagePainter(model = "https://randomuser.me/api/portraits/men/1.jpg"),
+                        painter = rememberAsyncImagePainter(model = user.value.image),
                         contentDescription = "User Image",
                         modifier = Modifier
                             .size(35.dp)
@@ -64,17 +98,17 @@ fun CommentScreen() {
                     Column() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "سامر مشتهى",
+                                text = user.value.name,
                                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             Text(
-                                "12:30",
+                                it.dateTime,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
                         Text(
-                            text = "تعليق تعليق تعليق تعليق",
+                            text = it.title,
                             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.secondary)
                         )
                     }
@@ -83,9 +117,11 @@ fun CommentScreen() {
         }
 
         TextField(
-            value = "",
-            onValueChange = { },
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            value = comment.value,
+            onValueChange = { comment.value = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = CircleShape,
             colors = TextFieldDefaults.textFieldColors(
                 disabledTextColor = Color.Transparent,
@@ -95,7 +131,21 @@ fun CommentScreen() {
             ),
             leadingIcon = {
                 IconButton(
-                    onClick = { },
+                    onClick = {
+                        commentController.addComment(
+                            Comment(
+                                title = comment.value,
+                                userId = FirebaseAuth.getInstance().currentUser!!.uid,
+                                articleId = id,
+                                dateTime = createdAt
+                            ),
+                            {
+                            comments.add(it)
+                            },
+                            {}
+                        )
+                        comment.value = ""
+                    },
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Icon(

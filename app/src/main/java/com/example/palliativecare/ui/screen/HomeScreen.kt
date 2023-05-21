@@ -23,46 +23,71 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.palliativecare.R
+import com.example.palliativecare.controller.article.ArticleController
+import com.example.palliativecare.controller.category.CategoryController
+import com.example.palliativecare.model.Article
+import com.example.palliativecare.model.Category
+import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
+import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    navController: NavController,
+    articleController: ArticleController,
+    categoryController: CategoryController
+) {
     val image = remember { mutableStateOf<Uri?>(null) }
-    val selectedTopic = remember { mutableStateOf("") }
-    val topics = remember { mutableStateListOf("الكل", "مرض السكري", "فقر الدم", "مرض السرطان", "امراض القلب") }
+    val selectedTopic = remember { mutableStateOf<Category>(Category("1", "الكل")) }
+    val topics = remember { mutableStateListOf<Category>() }
     var query by remember { mutableStateOf("") }
+    val articles = remember { mutableStateListOf<Article>() }
+    val coroutineScope = rememberCoroutineScope()
+    val isLoading = remember { mutableStateOf(true) }
 
+
+
+
+    LaunchedEffect(Unit) {
+
+        articles.addAll(articleController.getAllArticle())
+        topics.add(Category("1", "الكل"))
+        topics.addAll(categoryController.getAllCategory())
+        isLoading.value = false
+    }
+
+    LoadingScreen(visibility = isLoading.value)
+    val filteredArticles = articles.filter {
+        it.title.contains(query, ignoreCase = true)
+    }
     Column(modifier = Modifier.fillMaxSize()) {
         RoundedSearchBar(query = query, onQueryChange = { it -> query = it }, onSearchClick = {})
         Spacer(modifier = Modifier.height(16.dp))
@@ -72,9 +97,22 @@ fun HomeScreen() {
         ) {
             items(topics) { topic ->
                 TopicItem(
-                    selected = topic == selectedTopic.value,
-                    text = topic,
-                    onSelectedChange = { selectedTopic.value = topic }
+                    selected = topic.id == selectedTopic.value.id,
+                    text = topic.name,
+                    onSelectedChange = {
+                        selectedTopic.value = topic
+                        if(selectedTopic.value.name == "الكل"){
+                            coroutineScope.launch {
+                                articles.clear()
+                                articles.addAll(articleController.getAllArticle())
+                            }
+                        }else{
+                            coroutineScope.launch {
+                                articles.clear()
+                                articles.addAll(articleController.getArticleByCategory(selectedTopic.value.id))
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -83,18 +121,29 @@ fun HomeScreen() {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(5) {
+            items(filteredArticles) { article ->
+                val doctorName = remember {
+                    mutableStateOf("")
+                }
+                LaunchedEffect(Unit){
+                    coroutineScope.launch {
+                        doctorName.value = User.getUserByID(article.doctorId).first().name
+                    }
+                }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
                         .padding(horizontal = 16.dp)
-                        .clickable { },
+                        .clickable {
+                            navController.navigate("article_details_screen/${article.id}")
+                        },
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         AsyncImage(
-                            model = image.value ?: R.drawable.topic,
+                            model = article.picture,
                             contentDescription = "Profile picture",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -105,15 +154,16 @@ fun HomeScreen() {
                                 .fillMaxSize()
                         )
                         Text(
-                            text = "ارتفعت معدلات الوفيات المبكرة الناجمة عن داء السكري بنسبة 3% في الفترة بين عامي 2000 و2019",
+                            text = article.title,
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .padding(16.dp)
                         )
+
                         Text(
-                            text = "د. سامر مشتهى",
+                            text = doctorName.value,
                             color = Color.White,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier
@@ -121,9 +171,9 @@ fun HomeScreen() {
                                 .padding(16.dp)
                         )
                         Text(
-                            text = "18/04/2023",
+                            text = article.createdAt,
                             color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(16.dp)
@@ -154,6 +204,7 @@ fun TopicItem(
     ) {
         Text(
             text = text,
+            fontSize = 14.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
     }
@@ -177,6 +228,7 @@ fun RoundedSearchBar(
         placeholder = {
             Text(
                 text = "بحث عن مقالة...",
+                fontSize = 14.sp,
                 color = Color.Gray,
             )
         },

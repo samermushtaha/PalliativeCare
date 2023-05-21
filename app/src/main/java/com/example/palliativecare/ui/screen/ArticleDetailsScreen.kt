@@ -1,10 +1,9 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,17 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,12 +27,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,22 +42,51 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.R
+import com.example.palliativecare.controller.article.ArticleController
+import com.example.palliativecare.controller.category.CategoryController
+import com.example.palliativecare.model.Article
+import com.example.palliativecare.model.ChatUser
 import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArticleDetailsScreen() {
+fun ArticleDetailsScreen(
+    navController: NavController,
+    articleController: ArticleController,
+    id: String,
+) {
     val image = remember { mutableStateOf<Uri?>(null) }
+    val article = remember { mutableStateOf(Article()) }
+    val doctor = remember { mutableStateOf<User?>(null) }
+    val isUserSubscriber = remember { mutableStateOf(false) }
+    val isLoading = remember { mutableStateOf(true) }
+
+    val currentUser = FirebaseAuth.getInstance().currentUser!!
+
+    LaunchedEffect(Unit) {
+        article.value = articleController.getArticleByID(id).first()
+        doctor.value = User.getUserByID(article.value.doctorId).first()
+        CategoryController().getCategorySubscribers(article.value.categoryId) { subscribersMap -> // [userID to userToken]
+            isUserSubscriber.value = subscribersMap.keys.contains(currentUser.uid)
+        }
+        isLoading.value = false
+    }
+
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = "") },
                 navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                     }
                 },
@@ -74,7 +96,7 @@ fun ArticleDetailsScreen() {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    //OnClick Method
+                    navController.navigate("comment_screen/$id")
                 },
             ) {
                 Icon(
@@ -84,28 +106,66 @@ fun ArticleDetailsScreen() {
             }
         }
     ) { padding ->
+        LoadingScreen(visibility = isLoading.value)
         Box(modifier = Modifier.fillMaxSize()) {
-            Column {
-                AsyncImage(
-                    model = image.value ?: R.drawable.topic,
-                    contentDescription = "Profile picture",
-                    modifier = Modifier
-                        .fillMaxHeight(0.3f)
-                        .fillMaxWidth(),
-                    contentScale = ContentScale.Crop
-                )
-                DoctorInfo(
-                    User(
-                        "https://randomuser.me/api/portraits/men/1.jpg",
-                        "د. سامر مشتهى",
-                        "059212665",
+            doctor.value?.let { doctor ->
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    AsyncImage(
+                        model = article.value.picture,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier
+                            .fillMaxHeight(0.3f)
+                            .fillMaxWidth(),
+                        contentScale = ContentScale.Crop
                     )
-                )
-                Text(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    text = "داء السكري مرض مزمن يحدث عندما يعجز البنكرياس عن إنتاج الإنسولين بكمية كافية، أو عندما يعجز الجسم عن الاستخدام الفعال للإنسولين الذي ينتجه. والإنسولين هو هرمون يضبط مستوى الغلوكوز في الدم. ويُعد فرط السكر في الدم، الذي يعرف أيضا بارتفاع مستوى الغلوكوز في الدم، من النتائج الشائعة الدالة على خلل في ضبط مستوى السكر في الدم، ويؤدي مع مرور الوقت إلى الإضرار الخطير بالعديد من أجهزة الجسم، ولاسيما الأعصاب والأوعية الدموية."
-                )
+                    DoctorInfo(
+                        user = ChatUser(
+                            doctor.image,
+                            doctor.name,
+                            doctor.phoneNumber,
+                            doctor.userType,
+                            "12:00",
+                            "1"
+                        ),
+                        isSubscribed = isUserSubscriber,
+                        onClickUnSubscribe = {
+                            CategoryController().removeSubscriberFromFireStore(
+                                categoryId = article.value.categoryId,
+                                userId = currentUser.uid,
+                                ){success->
+                                if (success){
+                                    isUserSubscriber.value = false
+                                }
+                            }
+                        }
+                    ) {
+                        FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                            CategoryController().addCategorySubscribersInFireStore(
+                                categoryId = article.value.categoryId,
+                                newToken = it.result,
+                            ) { success ->
+                                if (success) {
+                                    isUserSubscriber.value = true
+                                }
+                            }
+                        }
+                    }
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = article.value.title,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = article.value.description,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(50.dp))
+                }
             }
+
         }
     }
 
@@ -113,7 +173,12 @@ fun ArticleDetailsScreen() {
 }
 
 @Composable
-fun DoctorInfo(user: User) {
+fun DoctorInfo(
+    user: ChatUser,
+    isSubscribed: MutableState<Boolean>,
+    onClickUnSubscribe: () -> Unit,
+    onClickSubscribe: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .padding(16.dp),
@@ -124,7 +189,10 @@ fun DoctorInfo(user: User) {
             contentDescription = "User Image",
             modifier = Modifier
                 .size(50.dp)
-                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .padding(2.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
         )
         Column(modifier = Modifier.padding(start = 16.dp)) {
             Text(
@@ -139,9 +207,9 @@ fun DoctorInfo(user: User) {
         }
         Spacer(modifier = Modifier.weight(1f))
         Button(
-            onClick = { },
+            onClick = if (isSubscribed.value) onClickUnSubscribe else onClickSubscribe,
         ) {
-            Text("تواصل معي")
+            Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة", fontSize = 14.sp)
         }
     }
 }
