@@ -112,6 +112,7 @@ fun MyNavHost(navHostController: NavHostController, preferences: SharedPreferenc
             ChatDetailsScreen(
                 navController = navHostController,
                 chatController = chatController,
+                id = userId,
                 name = name,
                 phone = phone,
             )

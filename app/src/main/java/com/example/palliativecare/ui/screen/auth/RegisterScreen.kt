@@ -42,6 +42,7 @@ import coil.compose.AsyncImage
 import com.example.palliativecare.R
 import com.example.palliativecare.controller.auth.AuthController
 import com.example.palliativecare.model.User
+import com.google.firebase.messaging.FirebaseMessaging
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -186,18 +187,22 @@ fun RegisterScreen(
                         imageUri = imageUri,
                         onSuccess = { downloadUrl ->
                             Toast.makeText(context, "تم التسجيل بنجاح", Toast.LENGTH_SHORT).show()
-                            val user = User(
-                                email = email.value,
-                                name = name.value,
-                                password = password.value,
-                                phoneNumber = phoneNumber.value,
-                                address = address.value,
-                                birthdate = birthdate.value,
-                                image = downloadUrl,
-                                userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
-                            )
-                            registerController.registerUser(user, context)
-                            registrationInProgress.value = false
+                            FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                                val user = User(
+                                    email = email.value,
+                                    name = name.value,
+                                    password = password.value,
+                                    phoneNumber = phoneNumber.value,
+                                    address = address.value,
+                                    birthdate = birthdate.value,
+                                    image = downloadUrl,
+                                    userType = if (selectedUserType.value == 0) "طبيب" else "مريض",
+                                    token = it.result
+                                )
+                                registerController.registerUser(user, context)
+                                registrationInProgress.value = false
+                            }
+
                         },
                         onFailure = { _ ->
                             Toast.makeText(context, "فشل التسجيل", Toast.LENGTH_SHORT).show()

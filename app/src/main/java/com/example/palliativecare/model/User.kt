@@ -1,6 +1,5 @@
 package com.example.palliativecare.model
 
-import android.net.Uri
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
@@ -13,7 +12,8 @@ data class User(
     var address: String = "",
     var birthdate: String = "",
     var image: String = "",
-    var userType: String = ""
+    var userType: String = "",
+    var token:String = ""
 ){
     companion object {
         suspend fun getUserByID(id: String): List<User> {
