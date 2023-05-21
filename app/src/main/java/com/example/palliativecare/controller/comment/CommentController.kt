@@ -1,5 +1,6 @@
 package com.example.palliativecare.controller.comment
 
+import com.example.palliativecare.controller.chat.ChatDetailsController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Comment
 import com.google.firebase.firestore.ktx.firestore
@@ -9,14 +10,17 @@ import kotlinx.coroutines.tasks.await
 class CommentController {
     val db = Firebase.firestore
 
-    fun addComment(comment: Comment, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+    fun addComment(comment: Comment, onSuccess: (Comment) -> Unit, onFailure: (String) -> Unit) {
         if (comment.title.isBlank()) {
             return
         } else {
             db.collection("comment")
                 .add(comment)
                 .addOnSuccessListener { documentReference ->
-                    onSuccess()
+                    documentReference.get()
+                    .addOnSuccessListener { documentSnapshot ->
+                        onSuccess(documentSnapshot.toObject(Comment::class.java)!!)
+                    }
                 }
                 .addOnFailureListener { e ->
                     onFailure(e.message.toString())

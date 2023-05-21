@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,9 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.controller.comment.CommentController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Comment
+import com.example.palliativecare.model.User
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -77,8 +81,12 @@ fun CommentScreen(navController: NavController, commentController: CommentContro
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val user = remember { mutableStateOf(User()) }
+                    LaunchedEffect(Unit) {
+                        user.value = User.getUserByID(it.userId).first()
+                    }
                     Image(
-                        painter = rememberAsyncImagePainter(model = "https://randomuser.me/api/portraits/men/1.jpg"),
+                        painter = rememberAsyncImagePainter(model = user.value.image),
                         contentDescription = "User Image",
                         modifier = Modifier
                             .size(35.dp)
@@ -88,7 +96,7 @@ fun CommentScreen(navController: NavController, commentController: CommentContro
                     Column() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "سامر مشتهى",
+                                text = user.value.name,
                                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                             )
                             Spacer(modifier = Modifier.weight(1f))
@@ -125,13 +133,16 @@ fun CommentScreen(navController: NavController, commentController: CommentContro
                         commentController.addComment(
                             Comment(
                                 title = comment.value,
-                                userId = "1",
+                                userId = FirebaseAuth.getInstance().currentUser!!.uid,
                                 articleId = id,
                                 dateTime = createdAt
                             ),
-                            {},
+                            {
+                            comments.add(it)
+                            },
                             {}
                         )
+                        comment.value = ""
                     },
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
