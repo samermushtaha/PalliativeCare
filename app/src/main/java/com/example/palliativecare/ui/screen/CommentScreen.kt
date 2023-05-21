@@ -44,6 +44,7 @@ import com.example.palliativecare.controller.comment.CommentController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Comment
 import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -56,13 +57,14 @@ fun CommentScreen(navController: NavController, commentController: CommentContro
     val comment = remember { mutableStateOf("") }
     val comments = remember { mutableStateListOf<Comment>() }
     val currentDate = Calendar.getInstance().time
-    val dateFormat = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd MMM", Locale("ar"))
     val createdAt = dateFormat.format(currentDate).toString()
-
+    val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         comments.addAll(commentController.getComments(id))
+        isLoading.value = false
     }
-
+    LoadingScreen(visibility = isLoading.value)
     Column {
         TopAppBar(
             title = { Text(text = "التعليقات") },

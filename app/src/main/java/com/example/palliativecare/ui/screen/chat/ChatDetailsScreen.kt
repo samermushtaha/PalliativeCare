@@ -1,6 +1,8 @@
 package com.example.palliativecare.ui.screen.chat
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,8 +29,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,13 +42,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.controller.chat.ChatDetailsController
+import com.example.palliativecare.model.Comment
+import com.example.palliativecare.ui.LoadingScreen
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,46 +64,32 @@ import java.util.Locale
 fun ChatDetailsScreen(
     navController: NavController,
     chatController: ChatDetailsController,
-    userId: String?,
     name: String?,
     phone: String?,
-    userType: String?,
-    image: String?,
 ) {
     var messages by remember { mutableStateOf(emptyList<ChatDetailsController.Message>()) }
-
-// Observe the messages
+    val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         chatController.observeMessages(
             messagesObserver = { updatedMessages ->
-                // Update the state variable with the received messages
                 messages = updatedMessages
             },
             newMessageObserver = { newMessage ->
-                // Handle the new message
-                // For example, add it to the UI or scroll to the bottom
-                messages += newMessage // Append the new message to the list of messages
+                messages += newMessage
             }
         )
+        isLoading.value = false
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFF333333))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-//                    Image(
-//                        painter = rememberAsyncImagePainter(model = image),
-//                        contentDescription = "User Image",
-//                        modifier = Modifier
-//                            .size(40.dp)
-//                            .clip(CircleShape)
-//                    )
                     Column() {
                         Text(
                             text = name.toString(),
@@ -112,7 +109,8 @@ fun ChatDetailsScreen(
                 }) {
                     Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                 }
-            }
+            },
+            colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
         )
         LazyColumn(
             modifier = Modifier
@@ -135,30 +133,8 @@ fun ChatDetailsScreen(
                 }
             }
         }
+        LoadingScreen(visibility = isLoading.value)
 
-//
-//        LazyColumn(
-//            modifier = Modifier
-//                .weight(1f)
-//                .padding(horizontal = 16.dp),
-//            verticalArrangement = Arrangement.spacedBy(4.dp),
-//            reverseLayout = true
-//        ) {
-//            items(messages.size) { index ->
-//                val message = messages[index]
-//                if (message.senderId == chatController.currentUser.id) {
-//                    ChatBubbleSender(
-//                        message = message.text,
-//                        timestamp = message.timestamp.toString()
-//                    )
-//                } else {
-//                    ChatBubbleReceiver(
-//                        message = message.text,
-//                        timestamp = message.timestamp.toString()
-//                    )
-//                }
-//            }
-//        }
 
         MessageInput(onMessageSent = { message ->
             if (message.isNotBlank()) {
@@ -174,7 +150,7 @@ fun ChatBubbleReceiver(message: String, timestamp: String) {
     val matchResult = timestampRegex.find(timestamp)
     val seconds = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()
 
-    val dateFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("h:mm a", Locale("ar"))
     val formattedTimestamp = if (seconds != null) {
         val date = Date(seconds * 1000) // Convert seconds to milliseconds
         dateFormat.format(date)
@@ -185,13 +161,17 @@ fun ChatBubbleReceiver(message: String, timestamp: String) {
         Box(
             modifier = Modifier
                 .padding(4.dp)
-                .background(color = Color.White, shape = RoundedCornerShape(8.dp, 8.dp, 8.dp, 0.dp))
+                .background(
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp, 8.dp, 8.dp, 0.dp)
+                )
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
                     text = message,
                     modifier = Modifier.padding(bottom = 4.dp),
-                    color = Color.Black
+                    color = Color.Black,
+                    fontSize = 14.sp
                 )
                 Text(
                     text = formattedTimestamp,
@@ -209,7 +189,7 @@ fun ChatBubbleSender(message: String, timestamp: String) {
     val matchResult = timestampRegex.find(timestamp)
     val seconds = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()
 
-    val dateFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("h:mm a", Locale("ar"))
     val formattedTimestamp = if (seconds != null) {
         val date = Date(seconds * 1000) // Convert seconds to milliseconds
         dateFormat.format(date)
@@ -229,7 +209,8 @@ fun ChatBubbleSender(message: String, timestamp: String) {
                 Text(
                     text = message,
                     modifier = Modifier.padding(bottom = 4.dp),
-                    color = Color.Black
+                    color = Color.White,
+                    fontSize = 14.sp
                 )
                 Text(
                     text = formattedTimestamp,
@@ -246,68 +227,39 @@ fun ChatBubbleSender(message: String, timestamp: String) {
 fun MessageInput(
     onMessageSent: (String) -> Unit,
 ) {
-    var message by remember { mutableStateOf("") }
+    val message= remember { mutableStateOf("") }
 
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .background(Color.Black)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            OutlinedTextField(
-                value = message,
-                onValueChange = { message = it },
-                modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.Gray,
-                    cursorColor = Color.Gray,
-                    placeholderColor = Color.Gray,
-                    focusedBorderColor = Color.Gray,
-                    unfocusedBorderColor = Color.Gray
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = {
-                    onMessageSent(message)
-                    message = ""
-                }),
-                placeholder = { Text(text = "اكتب رسالة...") }
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier.size(48.dp),
-                contentAlignment = Alignment.Center,
-                content = {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center,
-                        content = {
-                            IconButton(
-                                onClick = {
-                                    onMessageSent(message)
-                                    message = ""
-                                },
-                                modifier = Modifier.size(18.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Send,
-                                    contentDescription = "Send",
-                                    tint = Color.White
-                                )
-                            }
-                        }
-                    )
-                }
-            )
-
+    TextField(
+        value = message.value,
+        onValueChange = { message.value = it },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = CircleShape,
+        colors = TextFieldDefaults.textFieldColors(
+            disabledTextColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent
+        ),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+        keyboardActions = KeyboardActions(onSend = {
+            onMessageSent(message.value)
+            message.value = ""
+        }),
+        leadingIcon = {
+            IconButton(
+                onClick = {
+                    onMessageSent(message.value)
+                    message.value = ""
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Send,
+                    contentDescription = "Send Message"
+                )
+            }
         }
-    }
+    )
 }

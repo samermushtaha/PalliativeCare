@@ -134,7 +134,7 @@ fun LoginScreen(
         ) {
             if (loginProgress.value) {
                 CircularProgressIndicator(
-                    color = Color.Red
+                    color = Color.White
                 )
             } else {
                 Text("تسجيل دخول")

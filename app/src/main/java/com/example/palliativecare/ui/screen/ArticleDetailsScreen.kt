@@ -2,6 +2,7 @@ package com.example.palliativecare.ui.screen
 
 import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
@@ -50,6 +52,7 @@ import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.ChatUser
 import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 
@@ -64,13 +67,17 @@ fun ArticleDetailsScreen(
     val article = remember { mutableStateOf(Article()) }
     val doctor = remember { mutableStateOf<User?>(null) }
     val isUserSubscriber = remember { mutableStateOf(false) }
+    val isLoading = remember { mutableStateOf(true) }
+
     val currentUser = FirebaseAuth.getInstance().currentUser!!
+
     LaunchedEffect(Unit) {
         article.value = articleController.getArticleByID(id).first()
         doctor.value = User.getUserByID(article.value.doctorId).first()
         CategoryController().getCategorySubscribers(article.value.categoryId) { subscribersMap -> // [userID to userToken]
             isUserSubscriber.value = subscribersMap.keys.contains(currentUser.uid)
         }
+        isLoading.value = false
     }
 
 
@@ -99,6 +106,7 @@ fun ArticleDetailsScreen(
             }
         }
     ) { padding ->
+        LoadingScreen(visibility = isLoading.value)
         Box(modifier = Modifier.fillMaxSize()) {
             doctor.value?.let { doctor ->
                 Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -145,12 +153,14 @@ fun ArticleDetailsScreen(
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         text = article.value.title,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        text = article.value.description
+                        text = article.value.description,
+                        fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(50.dp))
                 }
@@ -179,7 +189,10 @@ fun DoctorInfo(
             contentDescription = "User Image",
             modifier = Modifier
                 .size(50.dp)
-                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .padding(2.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
         )
         Column(modifier = Modifier.padding(start = 16.dp)) {
             Text(
@@ -196,7 +209,7 @@ fun DoctorInfo(
         Button(
             onClick = if (isSubscribed.value) onClickUnSubscribe else onClickSubscribe,
         ) {
-            Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة")
+            Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة", fontSize = 14.sp)
         }
     }
 }

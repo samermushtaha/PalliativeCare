@@ -28,7 +28,6 @@ import com.example.palliativecare.controller.profile.ProfileController
 import com.example.palliativecare.ui.screen.AddArticleScreen
 import com.example.palliativecare.ui.screen.ArticleDetailsScreen
 import com.example.palliativecare.ui.screen.CommentScreen
-import com.example.palliativecare.ui.screen.HistoryScreen
 import com.example.palliativecare.ui.screen.MainScreen
 import com.example.palliativecare.ui.screen.auth.LoginScreen
 import com.example.palliativecare.ui.screen.auth.RegisterScreen
@@ -37,7 +36,6 @@ import com.example.palliativecare.ui.screen.chat.ChatScreen
 import com.example.palliativecare.ui.screen.profile.EditProfileScreen
 import com.example.palliativecare.ui.theme.PalliativeCareTheme
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,13 +110,10 @@ fun MyNavHost(navHostController: NavHostController, preferences: SharedPreferenc
             val chatController = ChatDetailsController(currentUser, selectedUser)
 
             ChatDetailsScreen(
-                navHostController,
-                chatController,
-                userId,
-                name,
-                phone,
-                userType,
-                image
+                navController = navHostController,
+                chatController = chatController,
+                name = name,
+                phone = phone,
             )
         }
 
@@ -132,9 +127,6 @@ fun MyNavHost(navHostController: NavHostController, preferences: SharedPreferenc
         }
         composable(route = "edit_profile_screen") {
             EditProfileScreen(navHostController, ProfileController())
-        }
-        composable(route = "history_screen") {
-            HistoryScreen(navHostController)
         }
         composable(route = "add_article_screen") {
             AddArticleScreen(

@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -76,7 +77,7 @@ fun ProfileScreen(
     ) {
         if (profileProgress.value) {
             CircularProgressIndicator(
-                color = Color.Red
+                color = MaterialTheme.colorScheme.primary
             )
         } else {
             AsyncImage(
@@ -84,15 +85,18 @@ fun ProfileScreen(
                 contentDescription = "Profile picture",
                 modifier = Modifier
                     .size(120.dp)
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    .padding(4.dp)
                     .clip(CircleShape)
-                    .border(1.dp, Color.Red, CircleShape),
+                ,
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text =
                 "${currentUser?.name}",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(

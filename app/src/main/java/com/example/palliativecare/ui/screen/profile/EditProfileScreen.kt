@@ -19,12 +19,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -68,7 +74,7 @@ fun EditProfileScreen(
     val userType = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val image = remember { mutableStateOf<Uri?>(null) }
-    val selectedUserType = remember { mutableStateOf(0) }
+    val selectedUserType = remember { mutableStateOf("") }
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -95,7 +101,7 @@ fun EditProfileScreen(
                 email.value = user?.email ?: ""
                 userType.value = user?.userType ?: ""
                 password.value = user?.password ?: ""
-                selectedUserType.value = if (userType.value == "طبيب") 0 else 1
+                selectedUserType.value = userType.value
             }
         }
     }
@@ -108,12 +114,20 @@ fun EditProfileScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        TopAppBar(
+            title = { Text(text = "تعديل البيانات الشخصية") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
+                }
+            }
+        )
         AsyncImage(
             model = if (image.value != null) image.value!! else currentUser.value?.image
                 ?: R.drawable.ic_profile_placeholder,
             contentDescription = "Profile picture",
             modifier = Modifier
-                .size(150.dp)
+                .size(130.dp)
                 .clip(CircleShape)
                 .clickable {
                     singlePhotoPickerLauncher.launch(
@@ -191,33 +205,6 @@ fun EditProfileScreen(
             ),
             modifier = Modifier.fillMaxWidth()
         )
-
-        /*        OutlinedTextField(
-                    value = userType.value,
-                    onValueChange = { userType.value = it },
-                    label = { Text("نوع المستخدم (مريض / طبيب)") },
-                    modifier = Modifier.fillMaxWidth()
-                )*/
-        Text(text = " نوع المستخدم (مريض / طبيب)")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = selectedUserType.value == 0,
-                    onClick = { selectedUserType.value = 0 })
-                Text(text = "طبيب", modifier = Modifier.padding(horizontal = 4.dp))
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = selectedUserType.value == 1,
-                    onClick = { selectedUserType.value = 1 })
-                Text(text = "مريض", modifier = Modifier.padding(horizontal = 4.dp))
-            }
-        }
-
-
         Button(
             onClick = {
                 editProfileProgress.value = true
@@ -235,17 +222,11 @@ fun EditProfileScreen(
                                 user.address = address.value
                                 user.birthdate = birthdate.value
                                 user.image = downloadUrl
-                                user.userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
+                                user.userType = selectedUserType.value
                                 editProfileProgress.value = true
-                                profileController.updateProfileInFirestore(user) { success ->
+                                profileController.updateProfileInFirestore(user) { _ ->
                                     editProfileProgress.value = false
-                                    if (success) {
-                                        Log.d("DEBUG", "Profile update successful")
-                                    } else {
-                                        Log.d("DEBUG", "Profile update failed")
-                                    }
-                                    // Enable the button after the profile update is complete
-                                    editProfileProgress.value = false
+                                    navController.popBackStack()
                                 }
                             }
 
@@ -268,17 +249,11 @@ fun EditProfileScreen(
                     user.address = address.value
                     user.birthdate = birthdate.value
                     user.image = currentUser.value?.image!!
-                    user.userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
+                    user.userType = selectedUserType.value
                     editProfileProgress.value = true
-                    profileController.updateProfileInFirestore(user) { success ->
+                    profileController.updateProfileInFirestore(user) { _ ->
                         editProfileProgress.value = false
-                        if (success) {
-                            Log.d("DEBUG", "Profile update successful")
-                        } else {
-                            Log.d("DEBUG", "Profile update failed")
-                        }
-                        // Enable the button after the profile update is complete
-                        editProfileProgress.value = false
+                        navController.popBackStack()
                     }
                 }
 
@@ -292,7 +267,7 @@ fun EditProfileScreen(
         ) {
             if (editProfileProgress.value) {
                 CircularProgressIndicator(
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.primary
                 )
             } else {
                 Text("حفظ التعديلات")

@@ -54,7 +54,7 @@ fun MainScreen(navHostController: NavController, preferences: SharedPreferences)
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = navItems[current.value].title) },
+                title = { Text(text = navItems[current.value].title, fontSize = 22.sp) },
             )
         },
         floatingActionButton = {
@@ -80,7 +80,7 @@ fun MainScreen(navHostController: NavController, preferences: SharedPreferences)
                                 contentDescription = ""
                             )
                         },
-                        label = { Text(text = screen.title) },
+                        label = { Text(text = screen.title, fontSize = 12.sp) },
                         selected = currentRoute == screen.route,
                         onClick = {
                             navController.navigate(screen.route) {
@@ -105,8 +105,6 @@ fun MainScreen(navHostController: NavController, preferences: SharedPreferences)
                 mainNavHostController = navHostController,
                 preferences
             )
-            navController.popBackStack()
-            navController.navigate(route = selectedItem.value)
         }
     }
 }

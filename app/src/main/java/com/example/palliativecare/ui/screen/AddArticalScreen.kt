@@ -73,7 +73,7 @@ fun AddArticleScreen(
 //    val categoryId = remember { mutableStateOf("") }
     val context = LocalContext.current
     val currentDate = Calendar.getInstance().time
-    val dateFormat = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd MMM", Locale("ar"))
     val createdAt = dateFormat.format(currentDate).toString()
     var selectedTopic = remember { mutableStateOf<Category>(Category("1", "اختر التصنيف")) }
     val topics = remember { mutableStateListOf<Category>() }

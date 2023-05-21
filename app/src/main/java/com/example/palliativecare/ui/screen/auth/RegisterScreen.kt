@@ -214,7 +214,7 @@ fun RegisterScreen(
         ) {
             if (registrationInProgress.value) {
                 CircularProgressIndicator(
-                    color = Color.Red
+                    color = Color.White
                 )
             } else {
                 Text("تسجيل")

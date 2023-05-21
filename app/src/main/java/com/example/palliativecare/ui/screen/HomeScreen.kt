@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.palliativecare.controller.article.ArticleController
@@ -55,6 +56,7 @@ import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
 import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -69,24 +71,23 @@ fun HomeScreen(
     var query by remember { mutableStateOf("") }
     val articles = remember { mutableStateListOf<Article>() }
     val coroutineScope = rememberCoroutineScope()
-//    val searchQuery = remember { mutableStateOf("") }
+    val isLoading = remember { mutableStateOf(true) }
 
 
 
 
     LaunchedEffect(Unit) {
+
         articles.addAll(articleController.getAllArticle())
-    }
-
-    LaunchedEffect(Unit) {
         topics.add(Category("1", "الكل"))
         topics.addAll(categoryController.getAllCategory())
+        isLoading.value = false
     }
 
+    LoadingScreen(visibility = isLoading.value)
     val filteredArticles = articles.filter {
         it.title.contains(query, ignoreCase = true)
     }
-
     Column(modifier = Modifier.fillMaxSize()) {
         RoundedSearchBar(query = query, onQueryChange = { it -> query = it }, onSearchClick = {})
         Spacer(modifier = Modifier.height(16.dp))
@@ -203,6 +204,7 @@ fun TopicItem(
     ) {
         Text(
             text = text,
+            fontSize = 14.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
     }
@@ -226,6 +228,7 @@ fun RoundedSearchBar(
         placeholder = {
             Text(
                 text = "بحث عن مقالة...",
+                fontSize = 14.sp,
                 color = Color.Gray,
             )
         },
