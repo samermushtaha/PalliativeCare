@@ -1,5 +1,6 @@
 package com.example.palliativecare.controller.chat
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.tasks.Task
@@ -10,6 +11,8 @@ import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import java.util.UUID
 
 class ChatDetailsController(
     val currentUser: User,
@@ -120,6 +123,50 @@ class ChatDetailsController(
             }
     }
 
+    fun uploadImage(imageUri: Uri, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        if (imageUri == Uri.EMPTY) {
+            onFailure(IllegalArgumentException("imageUri cannot be null or empty"))
+            return
+        }
+        val storageRef =
+            FirebaseStorage.getInstance().reference.child("images/${UUID.randomUUID()}")
+        storageRef.putFile(imageUri)
+            .addOnSuccessListener { taskSnapshot ->
+                storageRef.downloadUrl
+                    .addOnSuccessListener { uri ->
+                        onSuccess(uri.toString())
+                    }
+                    .addOnFailureListener { exception ->
+                        onFailure(exception)
+                    }
+            }
+            .addOnFailureListener { exception ->
+                onFailure(exception)
+            }
+    }
+
+    fun sendMessageWithImage(messageText: String, imageUrl:String) {
+        val message = Message(
+            senderId = currentUser.id,
+            receiverId = selectedUser.id,
+            text = messageText,
+            timestamp = Timestamp.now(),
+            imageUrl = imageUrl
+        )
+
+        messagesCollectionRef.add(message)
+            .addOnSuccessListener { documentRef ->
+                documentRef.get()
+                    .addOnSuccessListener { documentSnapshot ->
+                        val sentMessage = documentSnapshot.toObject(Message::class.java)
+                        sentMessage?.let {
+                            val currentMessages = _messages.value.orEmpty().toMutableList()
+                            currentMessages.add(it)
+                            _messages.value = currentMessages.toList()
+                        }
+                    }
+            }
+    }
 
     data class User(val id: String, val name: String, val phone: String, val image: String)
 
@@ -127,6 +174,7 @@ class ChatDetailsController(
         val senderId: String = "",
         val receiverId: String = "",
         val text: String = "",
-        val timestamp: Timestamp = Timestamp.now()
+        val timestamp: Timestamp = Timestamp.now(),
+        val imageUrl: String = ""
     )
 }
