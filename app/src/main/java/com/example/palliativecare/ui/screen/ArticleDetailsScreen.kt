@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +56,7 @@ import com.example.palliativecare.model.User
 import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,7 @@ fun ArticleDetailsScreen(
     val doctor = remember { mutableStateOf<User?>(null) }
     val isUserSubscriber = remember { mutableStateOf(false) }
     val isLoading = remember { mutableStateOf(true) }
-
+    val scope = rememberCoroutineScope()
     val currentUser = FirebaseAuth.getInstance().currentUser!!
 
     LaunchedEffect(Unit) {
@@ -139,10 +141,10 @@ fun ArticleDetailsScreen(
                             }
                         }
                     ) {
-                        FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                        scope.launch {
                             CategoryController().addCategorySubscribersInFireStore(
                                 categoryId = article.value.categoryId,
-                                newToken = it.result,
+                                userId = currentUser.uid,
                             ) { success ->
                                 if (success) {
                                     isUserSubscriber.value = true

@@ -1,11 +1,9 @@
 package com.example.palliativecare.controller.category
 
-import android.util.Log
 import com.example.palliativecare.model.Category
-import com.google.firebase.auth.ktx.auth
+import com.example.palliativecare.model.User
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.ktx.getField
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 
@@ -22,16 +20,15 @@ class CategoryController {
         }
     }
 
-    fun addCategorySubscribersInFireStore(
+    suspend fun addCategorySubscribersInFireStore(
         categoryId: String,
-        newToken: String,
+        userId: String,
         callback: (Boolean) -> Unit,
     ) {
         val db = Firebase.firestore
-        val auth = Firebase.auth
-        val userId = auth.currentUser?.uid
+        val userName = User.getUserByID(userId).first().name
         val categoryRef = db.collection("category").document(categoryId)
-        val newSubscriber = hashMapOf(userId.toString() to newToken)
+        val newSubscriber = hashMapOf(userId to userName)
         categoryRef.get().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val document = task.result

@@ -49,6 +49,7 @@ import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
 import com.example.palliativecare.model.NotificationData
 import com.example.palliativecare.model.PushNotification
+import com.example.palliativecare.model.User
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -91,14 +92,15 @@ fun AddArticleScreen(
         topics.addAll(categoryController.getAllCategory())
     }
     fun sendNotificationToSubscribers(category: Category) {
-        CategoryController().getCategorySubscribers(category.id) {
+        CategoryController().getCategorySubscribers(category.id) {map->
             scope.launch {
                 withContext(Dispatchers.IO) {
-                    it.values.forEach { token ->
+                    map.keys.forEach { userId ->
+                        val token = User.getUserByID(userId).first().token
                         NotificationController.sendNotification(
                             PushNotification(
                                 notification = NotificationData(
-                                    title = "تم نشر مقالة جديدة",
+                                    title = "${map[userId]} ، تم نشر مقالة جديدة",
                                     body = " مقالة جديدة في موضوع ${category.name}"
                                 ),
                                 to = token

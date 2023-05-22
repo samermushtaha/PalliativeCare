@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,6 +26,7 @@ import com.example.palliativecare.controller.chat.ChatController
 import com.example.palliativecare.controller.chat.ChatDetailsController
 import com.example.palliativecare.controller.comment.CommentController
 import com.example.palliativecare.controller.profile.ProfileController
+import com.example.palliativecare.model.User
 import com.example.palliativecare.ui.screen.AddArticleScreen
 import com.example.palliativecare.ui.screen.ArticleDetailsScreen
 import com.example.palliativecare.ui.screen.CommentScreen
@@ -36,12 +38,26 @@ import com.example.palliativecare.ui.screen.chat.ChatScreen
 import com.example.palliativecare.ui.screen.profile.EditProfileScreen
 import com.example.palliativecare.ui.theme.PalliativeCareTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val preferences = getSharedPreferences("my_app", Context.MODE_PRIVATE)
+        FirebaseMessaging.getInstance().token.addOnCompleteListener {token->
+            FirebaseAuth.getInstance().currentUser?.uid?.let { uid->
+                lifecycleScope.launch {
+                    val db = Firebase.firestore
+                    val userRef = db.collection("users").document(uid)
+                    val updates = hashMapOf("token" to token.result)
+                    userRef.update(updates as Map<String, String>)
+                }
+            }
+        }
         setContent {
-            val preferences = getSharedPreferences("my_app", Context.MODE_PRIVATE)
             PalliativeCareTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val navController = rememberNavController()
