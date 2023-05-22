@@ -173,10 +173,13 @@ fun ChatDetailsScreen(
                     receiver.value?.let {
                         NotificationController.sendNotification(
                             PushNotification(
-                                NotificationData(
-                                    "رسالة من ${currentUser.value!!.name}", message
+                                notification = NotificationData(
+                                    title = "رسالة من ${currentUser.value!!.name}",
+                                    body = message,
+                                    image = currentUser.value?.image
                                 ),
-                                it.token
+                                to = it.token,
+
                             )
                         )
                     }

@@ -91,7 +91,7 @@ fun AddArticleScreen(
     LaunchedEffect(Unit) {
         topics.addAll(categoryController.getAllCategory())
     }
-    fun sendNotificationToSubscribers(category: Category) {
+    fun sendNotificationToSubscribers(category: Category, imageUri:String) {
         CategoryController().getCategorySubscribers(category.id) {map->
             scope.launch {
                 withContext(Dispatchers.IO) {
@@ -101,7 +101,8 @@ fun AddArticleScreen(
                             PushNotification(
                                 notification = NotificationData(
                                     title = "${map[userId]} ، تم نشر مقالة جديدة",
-                                    body = " مقالة جديدة في موضوع ${category.name}"
+                                    body = " مقالة جديدة في موضوع ${category.name}",
+                                    image = imageUri
                                 ),
                                 to = token
                             )
@@ -132,7 +133,7 @@ fun AddArticleScreen(
                             picture = uri
                         ),
                         onSuccess = {
-                            sendNotificationToSubscribers(selectedTopic.value)
+                            sendNotificationToSubscribers(selectedTopic.value, uri)
                         },
                         onFailure = {
                             isLoading.value = false
