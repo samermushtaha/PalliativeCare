@@ -28,12 +28,13 @@ class ChatDetailsController(
         get() = _messages
 
     // Sends a message to the selected user
-    fun sendMessage(messageText: String) {
+    fun sendMessage(messageText: String,imageUrl:String = "") {
         val message = Message(
             senderId = currentUser.id,
             receiverId = selectedUser.id,
             text = messageText,
-            timestamp = Timestamp.now()
+            timestamp = Timestamp.now(),
+            imageUrl = imageUrl
         )
 
         messagesCollectionRef.add(message)
@@ -145,28 +146,7 @@ class ChatDetailsController(
             }
     }
 
-    fun sendMessageWithImage(messageText: String, imageUrl:String) {
-        val message = Message(
-            senderId = currentUser.id,
-            receiverId = selectedUser.id,
-            text = messageText,
-            timestamp = Timestamp.now(),
-            imageUrl = imageUrl
-        )
 
-        messagesCollectionRef.add(message)
-            .addOnSuccessListener { documentRef ->
-                documentRef.get()
-                    .addOnSuccessListener { documentSnapshot ->
-                        val sentMessage = documentSnapshot.toObject(Message::class.java)
-                        sentMessage?.let {
-                            val currentMessages = _messages.value.orEmpty().toMutableList()
-                            currentMessages.add(it)
-                            _messages.value = currentMessages.toList()
-                        }
-                    }
-            }
-    }
 
     data class User(val id: String, val name: String, val phone: String, val image: String)
 

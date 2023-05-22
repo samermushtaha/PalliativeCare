@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -67,6 +66,7 @@ import com.example.palliativecare.model.PushNotification
 import com.example.palliativecare.model.User
 import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -171,30 +171,18 @@ fun ChatDetailsScreen(
         LoadingScreen(visibility = isLoading.value)
 
 
-        MessageInput(chatController, onMessageSent = { message ->
-            if (message.isNotBlank()) {
-                chatController.sendMessage(message)
-                scope.launch {
-                    receiver.value?.let {
-                        NotificationController.sendNotification(
-                            PushNotification(
-                                notification = NotificationData(
-                                    title = "رسالة من ${currentUser.value!!.name}",
-                                    body = message,
-                                    image = currentUser.value?.image
-                                ),
-                                to = it.token,
-
-                                )
-                        )
-                    }
-
-
-                }
-
-
+        MessageInput(chatController) { message, image ->
+            if (message.isNotBlank() || image.isNotBlank()) {
+                chatController.sendMessage(message, image)
+                sendNotification(
+                    scope =scope,
+                    sender = currentUser.value,
+                    receiver = receiver.value,
+                    messageText = message,
+                    messageImage = image
+                )
             }
-        })
+        }
     }
 }
 
@@ -233,7 +221,8 @@ fun ChatBubbleReceiver(message: ChatDetailsController.Message) {
                     AsyncImage(
                         modifier = Modifier.fillMaxWidth(0.65f),
                         model = message.imageUrl,
-                        contentDescription = "")
+                        contentDescription = ""
+                    )
                 }
                 Text(
                     text = formattedTimestamp,
@@ -281,7 +270,8 @@ fun ChatBubbleSender(message: ChatDetailsController.Message) {
                     AsyncImage(
                         modifier = Modifier.fillMaxWidth(0.65f),
                         model = message.imageUrl,
-                        contentDescription = "")
+                        contentDescription = ""
+                    )
                 }
                 Text(
                     text = formattedTimestamp,
@@ -298,7 +288,7 @@ fun ChatBubbleSender(message: ChatDetailsController.Message) {
 @Composable
 fun MessageInput(
     chatController: ChatDetailsController,
-    onMessageSent: (String) -> Unit = {},
+    onMessageSent: (String,String) -> Unit,
 ) {
     val message = remember { mutableStateOf("") }
     val selectedImageUri = remember { mutableStateOf<Uri?>(null) }
@@ -316,19 +306,26 @@ fun MessageInput(
             Box(
                 Modifier
                     .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f))
-                    .padding(horizontal = 16.dp, vertical = 4.dp), contentAlignment = Alignment.CenterEnd) {
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
                 AsyncImage(
                     model = selectedImageUri.value,
                     contentDescription = "",
                     modifier = Modifier.size(120.dp),
                     contentScale = ContentScale.Crop
                 )
-                IconButton(modifier= Modifier
+                IconButton(modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.5f)),onClick = { selectedImageUri.value = null }) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "", tint = Color.White)
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                    onClick = { selectedImageUri.value = null }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "",
+                        tint = Color.White
+                    )
                 }
             }
 
@@ -348,7 +345,7 @@ fun MessageInput(
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = {
-                onMessageSent(message.value)
+                onMessageSent(message.value,"")
                 message.value = ""
             }),
             placeholder = {
@@ -364,13 +361,13 @@ fun MessageInput(
                         if (selectedImageUri.value != null) {
                             selectedImageUri.value?.let { uri ->
                                 chatController.uploadImage(uri, {
-                                    chatController.sendMessageWithImage(message.value, it)
+                                    onMessageSent(message.value, it)
                                     selectedImageUri.value = null
                                     message.value = ""
                                 }, {})
                             }
                         } else {
-                            onMessageSent(message.value)
+                            onMessageSent(message.value,"")
                             message.value = ""
                         }
 
@@ -398,5 +395,30 @@ fun MessageInput(
                 }
             }
         )
+    }
+}
+
+fun sendNotification(
+    scope: CoroutineScope,
+    sender: User?,
+    receiver: User?,
+    messageText: String?,
+    messageImage: String? = null,
+) {
+    scope.launch {
+        receiver?.let {
+            NotificationController.sendNotification(
+                PushNotification(
+                    notification = NotificationData(
+                        title = "رسالة من ${sender?.name}",
+                        body = messageText ?: "",
+                        image = messageImage
+                    ),
+                    to = it.token,
+                )
+            )
+        }
+
+
     }
 }
