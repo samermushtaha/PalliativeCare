@@ -41,12 +41,14 @@ class ChatDetailsController(
             .addOnSuccessListener { documentRef ->
                 documentRef.get()
                     .addOnSuccessListener { documentSnapshot ->
-                        val sentMessage = documentSnapshot.toObject(Message::class.java)
-                        sentMessage?.let {
-                            val currentMessages = _messages.value.orEmpty().toMutableList()
-                            currentMessages.add(it)
-                            _messages.value = currentMessages.toList()
-                        }
+
+                            val sentMessage = documentSnapshot.toObject(Message::class.java)
+                            sentMessage?.let {
+                                val currentMessages = _messages.value.orEmpty().toMutableList()
+                                currentMessages.add(it)
+                                _messages.value = currentMessages.toList()
+                            }
+
                     }
             }
     }

@@ -57,6 +57,7 @@ import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
 import com.example.palliativecare.model.User
 import com.example.palliativecare.ui.LoadingScreen
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @Composable
@@ -73,11 +74,11 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     val isLoading = remember { mutableStateOf(true) }
 
-
-
-
     LaunchedEffect(Unit) {
-
+        val userType = User.getUserByID(FirebaseAuth.getInstance().currentUser!!.uid).first().userType
+        if(userType == "طبيب"){
+            topics.add(Category("2", "مقالاتي"))
+        }
         articles.addAll(articleController.getAllArticle())
         topics.add(Category("1", "الكل"))
         topics.addAll(categoryController.getAllCategory())
@@ -105,6 +106,11 @@ fun HomeScreen(
                             coroutineScope.launch {
                                 articles.clear()
                                 articles.addAll(articleController.getAllArticle())
+                            }
+                        }else if(selectedTopic.value.name == "مقالاتي"){
+                            coroutineScope.launch {
+                                articles.clear()
+                                articles.addAll(articleController.getMyArticle(FirebaseAuth.getInstance().currentUser!!.uid))
                             }
                         }else{
                             coroutineScope.launch {
@@ -137,7 +143,11 @@ fun HomeScreen(
                         .height(150.dp)
                         .padding(horizontal = 16.dp)
                         .clickable {
-                            navController.navigate("article_details_screen/${article.id}")
+                            if(article.doctorId == FirebaseAuth.getInstance().currentUser!!.uid){
+                                navController.navigate("edit_article_screen/${article.id}")
+                            }else{
+                                navController.navigate("article_details_screen/${article.id}")
+                            }
                         },
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -161,7 +171,6 @@ fun HomeScreen(
                                 .align(Alignment.TopStart)
                                 .padding(16.dp)
                         )
-
                         Text(
                             text = doctorName.value,
                             color = Color.White,

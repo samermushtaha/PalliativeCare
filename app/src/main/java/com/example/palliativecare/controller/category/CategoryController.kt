@@ -20,6 +20,20 @@ class CategoryController {
         }
     }
 
+    suspend fun getCategoryById(id: String): List<Category> {
+        return db.collection("category").get().await().documents
+            .filter { documentSnapshot->
+                documentSnapshot.id == id
+            }
+            .map { documentSnapshot ->
+            val category = documentSnapshot.toObject(Category::class.java)!!
+            Category(
+                name = category.name,
+                id = documentSnapshot.id
+            )
+        }
+    }
+
     suspend fun addCategorySubscribersInFireStore(
         categoryId: String,
         userId: String,

@@ -30,6 +30,7 @@ import com.example.palliativecare.model.User
 import com.example.palliativecare.ui.screen.AddArticleScreen
 import com.example.palliativecare.ui.screen.ArticleDetailsScreen
 import com.example.palliativecare.ui.screen.CommentScreen
+import com.example.palliativecare.ui.screen.EditArticleScreen
 import com.example.palliativecare.ui.screen.MainScreen
 import com.example.palliativecare.ui.screen.auth.LoginScreen
 import com.example.palliativecare.ui.screen.auth.RegisterScreen
@@ -150,6 +151,15 @@ fun MyNavHost(navHostController: NavHostController, preferences: SharedPreferenc
                 articleController = ArticleController(),
                 navController = navHostController,
                 categoryController = CategoryController()
+            )
+        }
+        composable(route = "edit_article_screen/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id")
+            EditArticleScreen(
+                articleController = ArticleController(),
+                navController = navHostController,
+                categoryController = CategoryController(),
+                articleId = id.toString()
             )
         }
     }
