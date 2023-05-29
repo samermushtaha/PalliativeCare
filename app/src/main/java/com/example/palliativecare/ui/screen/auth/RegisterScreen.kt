@@ -42,7 +42,12 @@ import coil.compose.AsyncImage
 import com.example.palliativecare.R
 import com.example.palliativecare.controller.auth.AuthController
 import com.example.palliativecare.model.User
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +55,7 @@ fun RegisterScreen(
     navController: NavController,
     registerController: AuthController,
 ) {
+    var analytics = Firebase.analytics
     val context = LocalContext.current
     val registrationInProgress = remember { mutableStateOf(false) }
     val name = remember { mutableStateOf("") }
@@ -69,6 +75,19 @@ fun RegisterScreen(
             }
         }
     )
+
+    fun logRegistrationEvent(user: User) {
+        analytics = Firebase.analytics
+        analytics.logEvent(FirebaseAnalytics.Event.SIGN_UP, null)
+    }
+
+    fun setUserProperties(user: User) {
+        analytics = Firebase.analytics
+        analytics.setUserProperty("name", user.name)
+        analytics.setUserProperty("email", user.email)
+        analytics.setUserProperty("user_type", user.userType)
+    }
+
 
     Column(
         modifier = Modifier
@@ -165,13 +184,13 @@ fun RegisterScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically,) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = selectedUserType.value == 0, onClick = {
                     selectedUserType.value = 0
                 })
                 Text(text = "طبيب", modifier = Modifier.padding(horizontal = 4.dp))
             }
-            Row(verticalAlignment = Alignment.CenterVertically,) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = selectedUserType.value == 1, onClick = {
                     selectedUserType.value = 1
                 })
@@ -187,6 +206,20 @@ fun RegisterScreen(
                         imageUri = imageUri,
                         onSuccess = { downloadUrl ->
                             Toast.makeText(context, "تم التسجيل بنجاح", Toast.LENGTH_SHORT).show()
+                            val user = User(
+                                email = email.value,
+                                name = name.value,
+                                password = password.value,
+                                phoneNumber = phoneNumber.value,
+                                address = address.value,
+                                birthdate = birthdate.value,
+                                image = downloadUrl,
+                                userType = if (selectedUserType.value == 0) "طبيب" else "مريض"
+                            )
+                            registerController.registerUser(user, context)
+                            registrationInProgress.value = false
+                            logRegistrationEvent(user)
+                            setUserProperties(user)
                             FirebaseMessaging.getInstance().token.addOnCompleteListener {
                                 val user = User(
                                     email = email.value,
@@ -202,14 +235,13 @@ fun RegisterScreen(
                                 registerController.registerUser(user, context)
                                 registrationInProgress.value = false
                             }
-
                         },
                         onFailure = { _ ->
                             Toast.makeText(context, "فشل التسجيل", Toast.LENGTH_SHORT).show()
                             registrationInProgress.value = false
                         }
                     )
-                }?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
+                } ?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
 
 
             },

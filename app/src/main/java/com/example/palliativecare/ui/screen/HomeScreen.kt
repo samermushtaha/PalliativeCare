@@ -1,6 +1,7 @@
 package com.example.palliativecare.ui.screen
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -56,6 +58,9 @@ import com.example.palliativecare.controller.category.CategoryController
 import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.Category
 import com.example.palliativecare.model.User
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.ktx.Firebase
 import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -66,13 +71,28 @@ fun HomeScreen(
     articleController: ArticleController,
     categoryController: CategoryController
 ) {
+    val context = LocalContext.current
     val image = remember { mutableStateOf<Uri?>(null) }
     val selectedTopic = remember { mutableStateOf<Category>(Category("1", "الكل")) }
     val topics = remember { mutableStateListOf<Category>() }
     var query by remember { mutableStateOf("") }
     val articles = remember { mutableStateListOf<Article>() }
     val coroutineScope = rememberCoroutineScope()
+
+
+    fun trackArticleViewed(articleId: String) {
+        val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+
+        val params = Bundle().apply {
+            putString(FirebaseAnalytics.Param.ITEM_ID, articleId)
+            putString(FirebaseAnalytics.Param.ITEM_NAME, "Article Viewed")
+            putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Article")
+        }
+
+        firebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, params)
+    }
     val isLoading = remember { mutableStateOf(true) }
+
 
     LaunchedEffect(Unit) {
         val userType = User.getUserByID(FirebaseAuth.getInstance().currentUser!!.uid).first().userType
@@ -143,6 +163,8 @@ fun HomeScreen(
                         .height(150.dp)
                         .padding(horizontal = 16.dp)
                         .clickable {
+                            navController.navigate("article_details_screen/${article.id}")
+                            trackArticleViewed(article.id)
                             if(article.doctorId == FirebaseAuth.getInstance().currentUser!!.uid){
                                 navController.navigate("edit_article_screen/${article.id}")
                             }else{
