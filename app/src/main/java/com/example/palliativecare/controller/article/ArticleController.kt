@@ -29,6 +29,40 @@ class ArticleController {
         }
     }
 
+    fun updateArticle(article: Article, id: String, onSuccess: () -> Unit, onFailure: (String) -> Unit){
+        if (article.title.isBlank() || article.description.isBlank()) {
+            return
+        } else {
+            val docRef = db.collection("article").document(id)
+
+            val newArticle = hashMapOf<String, Any>()
+            newArticle["description"] = article.description
+            newArticle["title"] = article.title
+            newArticle["categoryId"] = article.categoryId
+            newArticle["picture"] = article.picture
+
+            docRef.update(newArticle)
+                .addOnSuccessListener {
+                    onSuccess()
+                }
+                .addOnFailureListener { e ->
+                    onFailure(e.message.toString())
+                }
+        }
+    }
+
+    fun deleteArticle(id: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        db.collection("article")
+            .document(id)
+            .delete()
+            .addOnSuccessListener { documentReference ->
+                onSuccess()
+            }
+            .addOnFailureListener { e ->
+                onFailure(e.message.toString())
+            }
+    }
+
     fun uploadImage(imageUri: Uri, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         if (imageUri == Uri.EMPTY) {
             onFailure(IllegalArgumentException("imageUri cannot be null or empty"))
@@ -70,6 +104,24 @@ class ArticleController {
         return db.collection("article").get().await().documents
             .filter { documentSnapshot ->
                 documentSnapshot["categoryId"] == categoryId
+            }.map { documentSnapshot ->
+                val article = documentSnapshot.toObject(Article::class.java)!!
+                Article(
+                    title = article.title,
+                    picture = article.picture,
+                    description = article.description,
+                    doctorId = article.doctorId,
+                    categoryId = article.categoryId,
+                    createdAt = article.createdAt,
+                    id = documentSnapshot.id
+                )
+            }
+    }
+
+    suspend fun getMyArticle(doctorId: String): List<Article> {
+        return db.collection("article").get().await().documents
+            .filter { documentSnapshot ->
+                documentSnapshot["doctorId"] == doctorId
             }.map { documentSnapshot ->
                 val article = documentSnapshot.toObject(Article::class.java)!!
                 Article(
