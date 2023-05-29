@@ -1,6 +1,13 @@
 package com.example.palliativecare.ui.screen.chat
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -20,30 +26,48 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import com.example.palliativecare.R
 import com.example.palliativecare.controller.chat.ChatDetailsController
+import com.example.palliativecare.controller.notifications.NotificationController
+import com.example.palliativecare.model.NotificationData
+import com.example.palliativecare.model.PushNotification
+import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,47 +77,57 @@ import java.util.Locale
 fun ChatDetailsScreen(
     navController: NavController,
     chatController: ChatDetailsController,
-    userId: String?,
+    id: String?,
     name: String?,
     phone: String?,
-    userType: String?,
-    image: String?,
 ) {
     var messages by remember { mutableStateOf(emptyList<ChatDetailsController.Message>()) }
+    val isLoading = remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    val currentUser = remember { mutableStateOf<User?>(null) }
+    val receiver = remember { mutableStateOf<User?>(null) }
 
-// Observe the messages
     LaunchedEffect(Unit) {
         chatController.observeMessages(
             messagesObserver = { updatedMessages ->
-                // Update the state variable with the received messages
                 messages = updatedMessages
             },
             newMessageObserver = { newMessage ->
-                // Handle the new message
-                // For example, add it to the UI or scroll to the bottom
-                messages += newMessage // Append the new message to the list of messages
+                messages += newMessage
             }
         )
+        id?.let {
+            receiver.value = User.getUserByID(it).first()
+        }
+        FirebaseAuth.getInstance().currentUser?.uid?.let {
+            currentUser.value = User.getUserByID(it).first()
+        }
+        isLoading.value = false
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFF333333))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-//                    Image(
-//                        painter = rememberAsyncImagePainter(model = image),
-//                        contentDescription = "User Image",
-//                        modifier = Modifier
-//                            .size(40.dp)
-//                            .clip(CircleShape)
-//                    )
-                    Column() {
+                    receiver.value?.let {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = it.image),
+                            contentDescription = "User Image",
+                            modifier = Modifier
+                                .size(55.dp)
+                                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                .padding(2.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+
+                    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
                         Text(
                             text = name.toString(),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -112,91 +146,40 @@ fun ChatDetailsScreen(
                 }) {
                     Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
                 }
-            }
+            },
+            colors = TopAppBarDefaults.largeTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.secondary.copy(
+                    alpha = 0.2f
+                )
+            )
         )
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             reverseLayout = true
         ) {
             items(messages.sortedByDescending { it.timestamp }) { message ->
                 if (message.senderId == chatController.currentUser.id) {
-                    ChatBubbleSender(
-                        message = message.text,
-                        timestamp = message.timestamp.toString()
-                    )
+                    ChatBubbleSender(message)
                 } else {
-                    ChatBubbleReceiver(
-                        message = message.text,
-                        timestamp = message.timestamp.toString()
-                    )
+                    ChatBubbleReceiver(message)
                 }
             }
         }
+        LoadingScreen(visibility = isLoading.value)
 
-//
-//        LazyColumn(
-//            modifier = Modifier
-//                .weight(1f)
-//                .padding(horizontal = 16.dp),
-//            verticalArrangement = Arrangement.spacedBy(4.dp),
-//            reverseLayout = true
-//        ) {
-//            items(messages.size) { index ->
-//                val message = messages[index]
-//                if (message.senderId == chatController.currentUser.id) {
-//                    ChatBubbleSender(
-//                        message = message.text,
-//                        timestamp = message.timestamp.toString()
-//                    )
-//                } else {
-//                    ChatBubbleReceiver(
-//                        message = message.text,
-//                        timestamp = message.timestamp.toString()
-//                    )
-//                }
-//            }
-//        }
 
-        MessageInput(onMessageSent = { message ->
-            if (message.isNotBlank()) {
-                chatController.sendMessage(message)
-            }
-        })
-    }
-}
-
-@Composable
-fun ChatBubbleReceiver(message: String, timestamp: String) {
-    val timestampRegex = "Timestamp\\(seconds=(\\d+),".toRegex()
-    val matchResult = timestampRegex.find(timestamp)
-    val seconds = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()
-
-    val dateFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
-    val formattedTimestamp = if (seconds != null) {
-        val date = Date(seconds * 1000) // Convert seconds to milliseconds
-        dateFormat.format(date)
-    } else {
-        ""
-    }
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-        Box(
-            modifier = Modifier
-                .padding(4.dp)
-                .background(color = Color.White, shape = RoundedCornerShape(8.dp, 8.dp, 8.dp, 0.dp))
-        ) {
-            Column(modifier = Modifier.padding(8.dp)) {
-                Text(
-                    text = message,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    color = Color.Black
-                )
-                Text(
-                    text = formattedTimestamp,
-                    color = Color.Gray,
-                    fontSize = 12.sp
+        MessageInput(chatController) { message, image ->
+            if (message.isNotBlank() || image.isNotBlank()) {
+                chatController.sendMessage(message, image)
+                sendNotification(
+                    scope =scope,
+                    sender = currentUser.value,
+                    receiver = receiver.value,
+                    messageText = message,
+                    messageImage = image
                 )
             }
         }
@@ -204,12 +187,14 @@ fun ChatBubbleReceiver(message: String, timestamp: String) {
 }
 
 @Composable
-fun ChatBubbleSender(message: String, timestamp: String) {
+fun ChatBubbleReceiver(message: ChatDetailsController.Message) {
+    val timestamp = message.timestamp.toString()
+    val messageText = message.text
     val timestampRegex = "Timestamp\\(seconds=(\\d+),".toRegex()
     val matchResult = timestampRegex.find(timestamp)
     val seconds = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()
 
-    val dateFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("h:mm a", Locale("ar"))
     val formattedTimestamp = if (seconds != null) {
         val date = Date(seconds * 1000) // Convert seconds to milliseconds
         dateFormat.format(date)
@@ -219,95 +204,221 @@ fun ChatBubbleSender(message: String, timestamp: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         Box(
             modifier = Modifier
-                .padding(4.dp)
                 .background(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(8.dp, 8.dp, 0.dp, 8.dp)
                 )
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
-                    text = message,
+                    text = messageText,
                     modifier = Modifier.padding(bottom = 4.dp),
-                    color = Color.Black
+                    color = Color.Black,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.End
                 )
+                if (message.imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        modifier = Modifier.fillMaxWidth(0.65f),
+                        model = message.imageUrl,
+                        contentDescription = ""
+                    )
+                }
                 Text(
                     text = formattedTimestamp,
-                    color = Color.Gray,
-                    fontSize = 12.sp
+                    color = Color(0xFF333333),
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.End
                 )
             }
         }
     }
 }
 
+@Composable
+fun ChatBubbleSender(message: ChatDetailsController.Message) {
+    val timestamp = message.timestamp.toString()
+    val messageText = message.text
+    val timestampRegex = "Timestamp\\(seconds=(\\d+),".toRegex()
+    val matchResult = timestampRegex.find(timestamp)
+    val seconds = matchResult?.groupValues?.getOrNull(1)?.toLongOrNull()
+
+    val dateFormat = SimpleDateFormat("h:mm a", Locale("ar"))
+    val formattedTimestamp = if (seconds != null) {
+        val date = Date(seconds * 1000) // Convert seconds to milliseconds
+        dateFormat.format(date)
+    } else {
+        ""
+    }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+        Box(
+            modifier = Modifier
+//                .padding(4.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(8.dp, 8.dp, 8.dp, 0.dp)
+                )
+        ) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                Text(
+                    text = messageText,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+                if (message.imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        modifier = Modifier.fillMaxWidth(0.65f),
+                        model = message.imageUrl,
+                        contentDescription = ""
+                    )
+                }
+                Text(
+                    text = formattedTimestamp,
+                    color = Color(0xFFE1E4EB),
+                    fontSize = 10.sp
+                )
+            }
+        }
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageInput(
-    onMessageSent: (String) -> Unit,
+    chatController: ChatDetailsController,
+    onMessageSent: (String,String) -> Unit,
 ) {
-    var message by remember { mutableStateOf("") }
+    val message = remember { mutableStateOf("") }
+    val selectedImageUri = remember { mutableStateOf<Uri?>(null) }
+    val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { selectedUri ->
+            if (selectedUri != null) {
+                selectedImageUri.value = selectedUri
+            }
+        }
+    )
 
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .background(Color.Black)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            OutlinedTextField(
-                value = message,
-                onValueChange = { message = it },
-                modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = Color.Gray,
-                    cursorColor = Color.Gray,
-                    placeholderColor = Color.Gray,
-                    focusedBorderColor = Color.Gray,
-                    unfocusedBorderColor = Color.Gray
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = {
-                    onMessageSent(message)
-                    message = ""
-                }),
-                placeholder = { Text(text = "اكتب رسالة...") }
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
+    Column {
+        AnimatedVisibility(visible = selectedImageUri.value != null) {
             Box(
-                modifier = Modifier.size(48.dp),
-                contentAlignment = Alignment.Center,
-                content = {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center,
-                        content = {
-                            IconButton(
-                                onClick = {
-                                    onMessageSent(message)
-                                    message = ""
-                                },
-                                modifier = Modifier.size(18.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Send,
-                                    contentDescription = "Send",
-                                    tint = Color.White
-                                )
-                            }
-                        }
+                Modifier
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f))
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                AsyncImage(
+                    model = selectedImageUri.value,
+                    contentDescription = "",
+                    modifier = Modifier.size(120.dp),
+                    contentScale = ContentScale.Crop
+                )
+                IconButton(modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                    onClick = { selectedImageUri.value = null }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "",
+                        tint = Color.White
                     )
                 }
-            )
+            }
 
         }
+        TextField(
+            value = message.value,
+            onValueChange = { message.value = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = CircleShape,
+            colors = TextFieldDefaults.textFieldColors(
+                disabledTextColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = {
+                onMessageSent(message.value,"")
+                message.value = ""
+            }),
+            placeholder = {
+                Text(
+                    text = "اكتب رسالة..",
+                    color = Color.Black.copy(alpha = 0.5f),
+                    fontSize = 16.sp
+                )
+            },
+            leadingIcon = {
+                IconButton(
+                    onClick = {
+                        if (selectedImageUri.value != null) {
+                            selectedImageUri.value?.let { uri ->
+                                chatController.uploadImage(uri, {
+                                    onMessageSent(message.value, it)
+                                    selectedImageUri.value = null
+                                    message.value = ""
+                                }, {})
+                            }
+                        } else {
+                            onMessageSent(message.value,"")
+                            message.value = ""
+                        }
+
+
+                    },
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Send,
+                        contentDescription = "Send Message"
+                    )
+                }
+            },
+            trailingIcon = {
+                IconButton(onClick = {
+                    singlePhotoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_attach),
+                        contentDescription = "attachment"
+                    )
+
+                }
+            }
+        )
+    }
+}
+
+fun sendNotification(
+    scope: CoroutineScope,
+    sender: User?,
+    receiver: User?,
+    messageText: String?,
+    messageImage: String? = null,
+) {
+    scope.launch {
+        receiver?.let {
+            NotificationController.sendNotification(
+                PushNotification(
+                    notification = NotificationData(
+                        title = "رسالة من ${sender?.name}",
+                        body = messageText ?: "",
+                        image = messageImage
+                    ),
+                    to = it.token,
+                )
+            )
+        }
+
+
     }
 }

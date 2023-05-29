@@ -23,6 +23,7 @@ class AuthController {
                         .addOnSuccessListener {
                             Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT)
                                 .show()
+
                         }
                         .addOnFailureListener {
                             Toast.makeText(

@@ -46,6 +46,8 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,6 +220,21 @@ fun RegisterScreen(
                             registrationInProgress.value = false
                             logRegistrationEvent(user)
                             setUserProperties(user)
+                            FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                                val user = User(
+                                    email = email.value,
+                                    name = name.value,
+                                    password = password.value,
+                                    phoneNumber = phoneNumber.value,
+                                    address = address.value,
+                                    birthdate = birthdate.value,
+                                    image = downloadUrl,
+                                    userType = if (selectedUserType.value == 0) "طبيب" else "مريض",
+                                    token = it.result
+                                )
+                                registerController.registerUser(user, context)
+                                registrationInProgress.value = false
+                            }
                         },
                         onFailure = { _ ->
                             Toast.makeText(context, "فشل التسجيل", Toast.LENGTH_SHORT).show()
@@ -234,7 +251,7 @@ fun RegisterScreen(
         ) {
             if (registrationInProgress.value) {
                 CircularProgressIndicator(
-                    color = Color.Red
+                    color = Color.White
                 )
             } else {
                 Text("تسجيل")

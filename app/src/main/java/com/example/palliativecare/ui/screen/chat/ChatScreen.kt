@@ -1,6 +1,7 @@
 package com.example.palliativecare.ui.screen.chat
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -41,44 +43,32 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.palliativecare.controller.chat.ChatController
 import com.example.palliativecare.model.ChatUser
+import com.example.palliativecare.model.User
+import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     navController: NavController,
-    chatController: ChatController
-
-) {
+    chatController: ChatController,
+    ) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val users = remember { mutableStateListOf<ChatUser>() }
     val searchQuery = remember { mutableStateOf("") }
-
+    val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         val fetchedUsers = currentUser?.let { chatController.getAllUsers(it.uid) }
         if (fetchedUsers != null) {
-            users.addAll(fetchedUsers)
+            val currentUserType = User.getUserByID(currentUser.uid).first().userType
+            val filteredList = fetchedUsers.filter {
+                it.userType != currentUserType
+            }
+            users.addAll(filteredList)
         }
+        isLoading.value = false
     }
-
-//    val currentUser = FirebaseAuth.getInstance().currentUser
-//    val users = remember { mutableStateListOf<ChatUser>() }
-//    val searchQuery = remember { mutableStateOf("") }
-//
-//    LaunchedEffect(Unit) {
-//        val fetchedUsers = currentUser?.let { chatController.getAllUsers(it.uid) }
-//        if (fetchedUsers != null) {
-//            val currentUserType = fetchedUsers.firstOrNull()?.userType
-//            val filteredUsers = if (currentUserType == "مريض") {
-//                fetchedUsers.filter { it.userType == "مريض" }
-//            } else {
-//                fetchedUsers.filter { it.userType == "طبيب" }
-//            }
-//            users.addAll(filteredUsers)
-//        }
-//    }
-
-
+    LoadingScreen(visibility = isLoading.value)
     val filteredUsers = users.filter {
         it.name.contains(searchQuery.value, ignoreCase = true) ||
                 it.phone.contains(searchQuery.value, ignoreCase = true)
@@ -147,8 +137,11 @@ fun UserListItem(user: ChatUser, navController: NavController) {
         Image(
             painter = rememberAsyncImagePainter(model = user.image),
             contentDescription = "User Image",
+            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(60.dp)
+                .size(65.dp)
+                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .padding(2.dp)
                 .clip(CircleShape)
         )
         Column(modifier = Modifier.padding(start = 16.dp)) {

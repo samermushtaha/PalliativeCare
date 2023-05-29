@@ -3,6 +3,7 @@ package com.example.palliativecare.ui.screen
 import android.net.Uri
 import android.os.Bundle
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
@@ -53,8 +56,10 @@ import com.example.palliativecare.model.Article
 import com.example.palliativecare.model.ChatUser
 import com.example.palliativecare.model.User
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.example.palliativecare.ui.LoadingScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,13 +73,17 @@ fun ArticleDetailsScreen(
     val article = remember { mutableStateOf(Article()) }
     val doctor = remember { mutableStateOf<User?>(null) }
     val isUserSubscriber = remember { mutableStateOf(false) }
+    val isLoading = remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     val currentUser = FirebaseAuth.getInstance().currentUser!!
+
     LaunchedEffect(Unit) {
         article.value = articleController.getArticleByID(id).first()
         doctor.value = User.getUserByID(article.value.doctorId).first()
         CategoryController().getCategorySubscribers(article.value.categoryId) { subscribersMap -> // [userID to userToken]
             isUserSubscriber.value = subscribersMap.keys.contains(currentUser.uid)
         }
+        isLoading.value = false
     }
 
 
@@ -105,6 +114,7 @@ fun ArticleDetailsScreen(
             }
         }
     ) { padding ->
+        LoadingScreen(visibility = isLoading.value)
         Box(modifier = Modifier.fillMaxSize()) {
             doctor.value?.let { doctor ->
                 Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -137,10 +147,10 @@ fun ArticleDetailsScreen(
                             }
                         }
                     ) {
-                        FirebaseMessaging.getInstance().token.addOnCompleteListener {
+                        scope.launch {
                             CategoryController().addCategorySubscribersInFireStore(
                                 categoryId = article.value.categoryId,
-                                newToken = it.result,
+                                userId = currentUser.uid,
                             ) { success ->
                                 if (success) {
                                     isUserSubscriber.value = true
@@ -151,12 +161,14 @@ fun ArticleDetailsScreen(
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         text = article.value.title,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        text = article.value.description
+                        text = article.value.description,
+                        fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(50.dp))
                 }
@@ -198,7 +210,10 @@ fun DoctorInfo(
             contentDescription = "User Image",
             modifier = Modifier
                 .size(50.dp)
-                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .padding(2.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
         )
         Column(modifier = Modifier.padding(start = 16.dp)) {
             Text(
@@ -223,7 +238,7 @@ fun DoctorInfo(
                 }
             }
         ) {
-            Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة")
+            Text(if (isSubscribed.value) "إلغاء المتابعة" else "متابعة", fontSize = 14.sp)
         }
     }
 }

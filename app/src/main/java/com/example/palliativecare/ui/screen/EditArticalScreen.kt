@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,16 +62,19 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddArticleScreen(
+fun EditArticleScreen(
     articleController: ArticleController,
     categoryController: CategoryController,
     navController: NavController,
+    articleId: String
 ) {
     val image = remember { mutableStateOf<Uri?>(null) }
     val isLoading = remember { mutableStateOf(false) }
+    val isDeleteLoading = remember { mutableStateOf(false) }
     val isFailure = remember { mutableStateOf(false) }
     val title = remember { mutableStateOf("") }
     val description = remember { mutableStateOf("") }
+    val picture = remember { mutableStateOf("") }
 //    val categoryId = remember { mutableStateOf("") }
     val context = LocalContext.current
     val currentDate = Calendar.getInstance().time
@@ -79,6 +83,7 @@ fun AddArticleScreen(
     var selectedTopic = remember { mutableStateOf<Category>(Category("1", "اختر التصنيف")) }
     val topics = remember { mutableStateListOf<Category>() }
     val scope = rememberCoroutineScope()
+    val article = remember { mutableStateOf(Article()) }
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -90,9 +95,14 @@ fun AddArticleScreen(
 
     LaunchedEffect(Unit) {
         topics.addAll(categoryController.getAllCategory())
+        article.value = articleController.getArticleByID(articleId).first()
+        picture.value = article.value.picture
+        title.value = article.value.title
+        description.value = article.value.description
+        selectedTopic.value = categoryController.getCategoryById(article.value.categoryId).first()
     }
-    fun sendNotificationToSubscribers(category: Category, imageUri:String) {
-        CategoryController().getCategorySubscribers(category.id) {map->
+    fun sendNotificationToSubscribers(category: Category, imageUri: String) {
+        CategoryController().getCategorySubscribers(category.id) { map ->
             scope.launch {
                 withContext(Dispatchers.IO) {
                     map.keys.forEach { userId ->
@@ -123,7 +133,7 @@ fun AddArticleScreen(
             articleController.uploadImage(
                 imageUri = imageUri,
                 onSuccess = { uri ->
-                    articleController.addArticle(
+                    articleController.updateArticle(
                         Article(
                             title = title.value,
                             description = description.value,
@@ -132,8 +142,9 @@ fun AddArticleScreen(
                             doctorId = currentUser?.uid.toString(),
                             picture = uri
                         ),
+                        articleId,
                         onSuccess = {
-                            sendNotificationToSubscribers(selectedTopic.value, uri)
+//                            sendNotificationToSubscribers(selectedTopic.value, uri)
                         },
                         onFailure = {
                             isLoading.value = false
@@ -145,13 +156,33 @@ fun AddArticleScreen(
                 onFailure = { Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show() }
             )
 
-        } ?: Toast.makeText(context, "يرجى اختيار صورة", Toast.LENGTH_SHORT).show()
+        } ?: {
+            articleController.updateArticle(
+            Article(
+                title = title.value,
+                description = description.value,
+                categoryId = selectedTopic.value.id,
+                createdAt = createdAt,
+                doctorId = currentUser?.uid.toString(),
+                picture = article.value.picture
+            ),
+            articleId,
+            onSuccess = {
+//                sendNotificationToSubscribers(selectedTopic.value, uri)
+            },
+            onFailure = {
+                isLoading.value = false
+                isFailure.value = true
+                Toast.makeText(context, "حدث خطا ما", Toast.LENGTH_SHORT).show()
+            }
+        )
+        }
 
     }
 
     Column {
         TopAppBar(
-            title = { Text(text = "اضافة مقالة") },
+            title = { Text(text = "تعديل مقالة") },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "")
@@ -164,14 +195,26 @@ fun AddArticleScreen(
                     if (isLoading.value) {
                         CircularProgressIndicator(color = Color.White)
                     } else {
-                        Text(text = "اضافة")
+                        Text(text = "تعديل")
                     }
 
+                }
+                IconButton(onClick = {
+                    articleController.deleteArticle(
+                        articleId,
+                        { navController.popBackStack() },
+                        { Toast.makeText(context, it.toString(), Toast.LENGTH_SHORT).show() })
+                }) {
+                    if (isDeleteLoading.value) {
+                        CircularProgressIndicator(color = Color.White)
+                    } else {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "")
+                    }
                 }
             }
         )
         AsyncImage(
-            model = image.value ?: R.drawable.add_a_photo,
+            model = image.value ?: picture.value,
             contentDescription = "Profile picture",
             modifier = Modifier
                 .fillMaxHeight(0.3f)
@@ -204,7 +247,7 @@ fun AddArticleScreen(
             placeholder = { Text(text = "وصف المقالة") }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        DropdownMenuExample(
+        DropdownMenuExample2(
             selectedItem = selectedTopic.value,
             items = topics,
             onSelectedItem = {
@@ -219,7 +262,7 @@ fun AddArticleScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropdownMenuExample(
+fun DropdownMenuExample2(
     selectedItem: Category,
     items: List<Category>,
     onSelectedItem: (String) -> Unit,
